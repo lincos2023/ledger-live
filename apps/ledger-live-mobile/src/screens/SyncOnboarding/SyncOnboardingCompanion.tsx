@@ -22,8 +22,8 @@ import useFeature from "@ledgerhq/live-common/featureFlags/useFeature";
 
 import { SeedPhraseType, StorylyInstanceID } from "@ledgerhq/types-live";
 import { DeviceModelId } from "@ledgerhq/types-devices";
-import { addKnownDevice } from "../../actions/ble";
-import { NavigatorName, ScreenName } from "../../const";
+import { addKnownDevice } from "~/actions/ble";
+import { NavigatorName, ScreenName } from "~/const";
 import HelpDrawer from "./HelpDrawer";
 import DesyncOverlay from "./DesyncOverlay";
 import {
@@ -31,10 +31,10 @@ import {
   setHasOrderedNano,
   setLastConnectedDevice,
   setReadOnlyMode,
-} from "../../actions/settings";
-import InstallSetOfApps from "../../components/DeviceAction/InstallSetOfApps";
-import Stories from "../../components/StorylyStories";
-import { TrackScreen, screen } from "../../analytics";
+} from "~/actions/settings";
+import InstallSetOfApps from "~/components/DeviceAction/InstallSetOfApps";
+import Stories from "~/components/StorylyStories";
+import { TrackScreen, screen } from "~/analytics";
 import ContinueOnStax from "./assets/ContinueOnStax";
 import type { SyncOnboardingScreenProps } from ".";
 
@@ -328,7 +328,7 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
       !analyticsSeedingTracked.current
     ) {
       screen(
-        `Set up ${productName}: Step 3 Seed Success`,
+        "Set up device: Step 3 Seed Success",
         undefined,
         {
           seedPhraseType: analyticsSeedPhraseType.current
@@ -500,9 +500,12 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
           title: t("syncOnboarding.earlySecurityCheckCompletedStep.title", { productName }),
           renderBody: () => (
             <>
-              <TrackScreen
-                category={`Set up ${productName}: Step 1 early security check completed`}
-              />
+              <TrackScreen category={"Set up device: Step 1 device paired"} />
+              <Text variant="body" color="neutral.c80" mb={6}>
+                {t("syncOnboarding.earlySecurityCheckCompletedStep.subtitle", {
+                  productName,
+                })}
+              </Text>
               <ContinueOnDeviceWithAnim
                 deviceModelId={device.modelId}
                 text={t("syncOnboarding.earlySecurityCheckCompletedStep.description", {
@@ -519,7 +522,7 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
           doneTitle: t("syncOnboarding.pinStep.doneTitle"),
           renderBody: () => (
             <Flex>
-              <TrackScreen category={`Set up ${productName}: Step 2 PIN`} />
+              <TrackScreen category={"Set up device: Step 2 PIN"} />
               <BodyText>{t("syncOnboarding.pinStep.description", { productName })}</BodyText>
               <ContinueOnDeviceWithAnim
                 deviceModelId={device.modelId}
@@ -536,7 +539,7 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
           doneTitle: t("syncOnboarding.seedStep.doneTitle"),
           renderBody: () => (
             <Flex>
-              <TrackScreen category={`Set up ${productName}: Step 3 Seed Intro`} />
+              <TrackScreen category={"Set up device: Step 3 Seed Intro"} />
               {seedPathStatus === "new_seed" ? (
                 <Flex pb={1}>
                   <BodyText mb={6}>
@@ -576,11 +579,28 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
                 <BodyText>{t("syncOnboarding.seedStep.recoverSeed")}</BodyText>
               ) : (
                 <Flex>
-                  <BodyText>
+                  <BodyText color="neutral.c80">
                     {t("syncOnboarding.seedStep.selection", {
                       productName,
                     })}
                   </BodyText>
+
+                  <Flex mt={6}>
+                    <Text color="neutral.c100" fontWeight="semiBold" mb={3}>
+                      {t("syncOnboarding.seedStep.selectionNewLedger.title")}
+                    </Text>
+                    <Text color="neutral.c80">
+                      {t("syncOnboarding.seedStep.selectionNewLedger.desc")}
+                    </Text>
+                  </Flex>
+                  <Flex my={6}>
+                    <Text color="neutral.c100" fontWeight="semiBold" mb={3}>
+                      {t("syncOnboarding.seedStep.selectionRestore.title")}
+                    </Text>
+                    <Text color="neutral.c80">
+                      {t("syncOnboarding.seedStep.selectionRestore.desc")}
+                    </Text>
+                  </Flex>
                   <ContinueOnDeviceWithAnim
                     deviceModelId={device.modelId}
                     text={t("syncOnboarding.seedStep.selectionContinueOnDevice", {
@@ -666,7 +686,7 @@ export const SyncOnboardingCompanion: React.FC<SyncOnboardingCompanionProps> = (
             }
           />
           {companionStepKey === CompanionStepKey.Exit ? (
-            <TrackScreen category="Stax Set Up - Final step: Stax is ready" />
+            <TrackScreen category="Set up device: Final Step Your device is ready" />
           ) : null}
         </Flex>
       </Flex>

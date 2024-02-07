@@ -11,13 +11,13 @@ import getDeviceName from "@ledgerhq/live-common/hw/getDeviceName";
 import getBatteryStatus from "@ledgerhq/live-common/hw/getBatteryStatus";
 import listApps from "@ledgerhq/live-common/hw/listApps";
 import Transport from "@ledgerhq/hw-transport";
-import { ScreenName } from "../../../../const";
-import { StackNavigatorProps } from "../../../../components/RootNavigator/types/helpers";
-import { SettingsNavigatorStackParamList } from "../../../../components/RootNavigator/types/SettingsNavigator";
+import { ScreenName } from "~/const";
+import { StackNavigatorProps } from "~/components/RootNavigator/types/helpers";
+import { SettingsNavigatorStackParamList } from "~/components/RootNavigator/types/SettingsNavigator";
 
-import NavigationScrollView from "../../../../components/NavigationScrollView";
-import LText from "../../../../components/LText";
-import QueuedDrawer from "../../../../components/QueuedDrawer";
+import NavigationScrollView from "~/components/NavigationScrollView";
+import LText from "~/components/LText";
+import QueuedDrawer from "~/components/QueuedDrawer";
 
 const commandsById: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +40,7 @@ const CommandSender = ({ route }: Props) => {
   const [running, setRunning] = useState<boolean>(false);
 
   const onCommandSend = useCallback(
-    id => {
+    (id: keyof typeof commandsById) => {
       const { deviceId } = params;
       if (!deviceId) return;
 

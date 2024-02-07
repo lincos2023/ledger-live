@@ -82,9 +82,11 @@ const VerifyOnDevice = ({
     if (!device || skipDevice) return null;
     try {
       if (getEnv("MOCK")) {
-        setTimeout(() => {
-          onAddressVerified(true);
-        }, 3000);
+        window.mock.events.subject.subscribe({
+          complete() {
+            onAddressVerified(true);
+          },
+        });
       } else {
         await firstValueFrom(
           getAccountBridge(mainAccount).receive(mainAccount, {
@@ -182,7 +184,7 @@ const Root = ({ data, onClose, skipDevice, flow }: Props) => {
     [verifyAddress, onResult, account, parentAccount, onClose],
   );
   const onAddressVerified = useCallback(
-    status => {
+    (status: boolean) => {
       if (status) {
         onResult(account, parentAccount, status);
       }
@@ -297,7 +299,9 @@ const BuyCryptoModal = ({
 };
 const BuyCrypto = ({ flow }: { flow?: string }) => {
   const render = useCallback(
-    ({ data, onClose }) => <BuyCryptoModal data={data} onClose={onClose} flow={flow} />,
+    ({ data, onClose }: { data: DataProp; onClose: () => void }) => (
+      <BuyCryptoModal data={data} onClose={onClose} flow={flow} />
+    ),
     [flow],
   );
   return <Modal name="MODAL_EXCHANGE_CRYPTO_DEVICE" centered render={render} />;

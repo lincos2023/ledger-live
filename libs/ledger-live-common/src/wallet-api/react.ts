@@ -3,11 +3,8 @@ import semver from "semver";
 import { formatDistanceToNow } from "date-fns";
 import { Account, AccountLike, AnyMessage, Operation, SignedOperation } from "@ledgerhq/types-live";
 import { CryptoOrTokenCurrency } from "@ledgerhq/types-cryptoassets";
-import {
-  WalletHandlers,
-  useWalletAPIServer as useWalletAPIServerRaw,
-  ServerConfig,
-} from "@ledgerhq/wallet-api-server";
+import { WalletHandlers, ServerConfig, WalletAPIServer } from "@ledgerhq/wallet-api-server";
+import { useWalletAPIServer as useWalletAPIServerRaw } from "@ledgerhq/wallet-api-server/lib/react";
 import {
   ServerError,
   createCurrencyNotFound,
@@ -23,7 +20,7 @@ import {
   getAccountIdFromWalletAccountId,
 } from "./converters";
 import { isWalletAPISupportedCurrency } from "./helpers";
-import { WalletAPICurrency, AppManifest, WalletAPIAccount } from "./types";
+import { WalletAPICurrency, AppManifest, WalletAPIAccount, WalletAPICustomHandlers } from "./types";
 import { getMainAccount, getParentAccount } from "../account";
 import { listCurrencies, findCryptoCurrencyById, findTokenById } from "../currencies";
 import { TrackingAPI } from "./tracking";
@@ -44,7 +41,6 @@ import openTransportAsSubject, { BidirectionalEvent } from "../hw/openTransportA
 import { AppResult } from "../hw/actions/app";
 import { UserRefusedOnDevice } from "@ledgerhq/errors";
 import { Transaction } from "../generated/types";
-import { useManifests } from "../platform/providers/RemoteLiveAppProvider";
 import { DISCOVER_INITIAL_CATEGORY, MAX_RECENTLY_USED_LENGTH } from "./constants";
 import { DiscoverDB } from "./types";
 
@@ -160,7 +156,7 @@ export interface UiHook {
     onCancel: () => void;
   }) => void;
   "exchange.start": (params: {
-    exchangeType: "FUND" | "SELL" | "SWAP";
+    exchangeType: "SWAP" | "FUND" | "SELL" | "SWAP_NG" | "SELL_NG" | "FUND_NG";
     onSuccess: (nonce: string) => void;
     onCancel: (error: Error) => void;
   }) => void;
@@ -264,6 +260,19 @@ function useDeviceTransport({ manifest, tracking }) {
 
 const allCurrenciesAndTokens = listCurrencies(true);
 
+export type useWalletAPIServerOptions = {
+  manifest: AppManifest;
+  accounts: AccountLike[];
+  tracking: TrackingAPI;
+  config: ServerConfig;
+  webviewHook: {
+    reload: () => void;
+    postMessage: (message: string) => void;
+  };
+  uiHook: Partial<UiHook>;
+  customHandlers?: WalletAPICustomHandlers;
+};
+
 export function useWalletAPIServer({
   manifest,
   accounts,
@@ -283,22 +292,14 @@ export function useWalletAPIServer({
     "exchange.start": uiExchangeStart,
     "exchange.complete": uiExchangeComplete,
   },
-}: {
-  manifest: AppManifest;
-  accounts: AccountLike[];
-  tracking: TrackingAPI;
-  config: ServerConfig;
-  webviewHook: {
-    reload: () => void;
-    postMessage: (message: string) => void;
-  };
-  uiHook: Partial<UiHook>;
-}): {
+  customHandlers,
+}: useWalletAPIServerOptions): {
   onMessage: (event: string) => void;
-  widgetLoaded: boolean;
+  server: WalletAPIServer;
   onLoad: () => void;
   onReload: () => void;
   onLoadError: () => void;
+  widgetLoaded: boolean;
 } {
   const permission = usePermission(manifest);
   const transport = useTransport(webviewHook.postMessage);
@@ -313,6 +314,7 @@ export function useWalletAPIServer({
     accounts: walletAPIAccounts,
     currencies: walletAPICurrencies,
     permission,
+    customHandlers,
   });
 
   useEffect(() => {
@@ -366,7 +368,7 @@ export function useWalletAPIServer({
   useEffect(() => {
     if (!uiAccountReceive) return;
 
-    server.setHandler("account.receive", ({ account }) =>
+    server.setHandler("account.receive", ({ account, tokenCurrency }) =>
       receiveOnAccountLogic(
         { manifest, accounts, tracking },
         account.id,
@@ -390,6 +392,7 @@ export function useWalletAPIServer({
               },
             }),
           ),
+        tokenCurrency,
       ),
     );
   }, [accounts, manifest, server, tracking, uiAccountReceive]);
@@ -440,90 +443,100 @@ export function useWalletAPIServer({
   useEffect(() => {
     if (!uiTxSign) return;
 
-    server.setHandler("transaction.sign", async ({ account, transaction, options }) => {
-      const signedOperation = await signTransactionLogic(
-        { manifest, accounts, tracking },
-        account.id,
-        transaction,
-        (account, parentAccount, signFlowInfos) =>
-          new Promise((resolve, reject) =>
-            uiTxSign({
-              account,
-              parentAccount,
-              signFlowInfos,
-              options,
-              onSuccess: signedOperation => {
-                tracking.signTransactionSuccess(manifest);
-                resolve(signedOperation);
-              },
-              onError: error => {
-                tracking.signTransactionFail(manifest);
-                reject(error);
-              },
-            }),
-          ),
-      );
+    server.setHandler(
+      "transaction.sign",
+      async ({ account, tokenCurrency, transaction, options }) => {
+        const signedOperation = await signTransactionLogic(
+          { manifest, accounts, tracking },
+          account.id,
+          transaction,
+          (account, parentAccount, signFlowInfos) =>
+            new Promise((resolve, reject) =>
+              uiTxSign({
+                account,
+                parentAccount,
+                signFlowInfos,
+                options,
+                onSuccess: signedOperation => {
+                  tracking.signTransactionSuccess(manifest);
+                  resolve(signedOperation);
+                },
+                onError: error => {
+                  tracking.signTransactionFail(manifest);
+                  reject(error);
+                },
+              }),
+            ),
+          tokenCurrency,
+        );
 
-      return Buffer.from(signedOperation.signature);
-    });
+        return Buffer.from(signedOperation.signature);
+      },
+    );
   }, [accounts, manifest, server, tracking, uiTxSign]);
 
   useEffect(() => {
     if (!uiTxSign) return;
 
-    server.setHandler("transaction.signAndBroadcast", async ({ account, transaction, options }) => {
-      const signedTransaction = await signTransactionLogic(
-        { manifest, accounts, tracking },
-        account.id,
-        transaction,
-        (account, parentAccount, signFlowInfos) =>
-          new Promise((resolve, reject) =>
-            uiTxSign({
-              account,
-              parentAccount,
-              signFlowInfos,
-              options,
-              onSuccess: signedOperation => {
-                tracking.signTransactionSuccess(manifest);
-                resolve(signedOperation);
-              },
-              onError: error => {
-                tracking.signTransactionFail(manifest);
-                reject(error);
-              },
-            }),
-          ),
-      );
+    server.setHandler(
+      "transaction.signAndBroadcast",
+      async ({ account, tokenCurrency, transaction, options }) => {
+        const signedTransaction = await signTransactionLogic(
+          { manifest, accounts, tracking },
+          account.id,
+          transaction,
+          (account, parentAccount, signFlowInfos) =>
+            new Promise((resolve, reject) =>
+              uiTxSign({
+                account,
+                parentAccount,
+                signFlowInfos,
+                options,
+                onSuccess: signedOperation => {
+                  tracking.signTransactionSuccess(manifest);
+                  resolve(signedOperation);
+                },
+                onError: error => {
+                  tracking.signTransactionFail(manifest);
+                  reject(error);
+                },
+              }),
+            ),
+          tokenCurrency,
+        );
 
-      return broadcastTransactionLogic(
-        { manifest, accounts, tracking },
-        account.id,
-        signedTransaction,
-        async (account, parentAccount, signedOperation) => {
-          const bridge = getAccountBridge(account, parentAccount);
-          const mainAccount = getMainAccount(account, parentAccount);
+        return broadcastTransactionLogic(
+          { manifest, accounts, tracking },
+          account.id,
+          signedTransaction,
+          async (account, parentAccount, signedOperation) => {
+            const bridge = getAccountBridge(account, parentAccount);
+            const mainAccount = getMainAccount(account, parentAccount);
 
-          let optimisticOperation: Operation = signedOperation.operation;
+            let optimisticOperation: Operation = signedOperation.operation;
 
-          if (!getEnv("DISABLE_TRANSACTION_BROADCAST")) {
-            try {
-              optimisticOperation = await bridge.broadcast({
-                account: mainAccount,
-                signedOperation,
-              });
-              tracking.broadcastSuccess(manifest);
-            } catch (error) {
-              tracking.broadcastFail(manifest);
-              throw error;
+            if (!getEnv("DISABLE_TRANSACTION_BROADCAST")) {
+              try {
+                optimisticOperation = await bridge.broadcast({
+                  account: mainAccount,
+                  signedOperation,
+                });
+                tracking.broadcastSuccess(manifest);
+              } catch (error) {
+                tracking.broadcastFail(manifest);
+                throw error;
+              }
             }
-          }
 
-          uiTxBroadcast && uiTxBroadcast(account, parentAccount, mainAccount, optimisticOperation);
+            uiTxBroadcast &&
+              uiTxBroadcast(account, parentAccount, mainAccount, optimisticOperation);
 
-          return optimisticOperation.hash;
-        },
-      );
-    });
+            return optimisticOperation.hash;
+          },
+          tokenCurrency,
+        );
+      },
+    );
   }, [accounts, manifest, server, tracking, uiTxBroadcast, uiTxSign]);
 
   const onLoad = useCallback(() => {
@@ -692,7 +705,7 @@ export function useWalletAPIServer({
       return startExchangeLogic(
         { manifest, accounts, tracking },
         exchangeType,
-        (exchangeType: "SWAP" | "FUND" | "SELL") =>
+        exchangeType =>
           new Promise((resolve, reject) =>
             uiExchangeStart({
               exchangeType,
@@ -728,6 +741,7 @@ export function useWalletAPIServer({
         exchangeType: ExchangeType[params.exchangeType],
         swapId: params.exchangeType === "SWAP" ? params.swapId : undefined,
         rate: params.exchangeType === "SWAP" ? params.rate : undefined,
+        tokenCurrency: params.exchangeType !== "SELL" ? params.tokenCurrency : undefined,
       };
 
       return completeExchangeLogic(
@@ -757,6 +771,7 @@ export function useWalletAPIServer({
     onLoad,
     onReload,
     onLoadError,
+    server,
   };
 }
 
@@ -764,15 +779,12 @@ export enum ExchangeType {
   SWAP = 0x00,
   SELL = 0x01,
   FUND = 0x02,
+  SWAP_NG = 0x03,
+  SELL_NG = 0x04,
+  FUND_NG = 0x05,
 }
 
 export interface Categories {
-  manifests: {
-    all: AppManifest[];
-    complete: AppManifest[];
-    searchable: AppManifest[];
-  };
-  searchable: AppManifest[];
   categories: string[];
   manifestsByCategories: Map<string, AppManifest[]>;
   selected: string;
@@ -780,61 +792,41 @@ export interface Categories {
   reset: () => void;
 }
 
-export function useCategories(): Categories {
-  const all = useManifests();
-  const complete = useMemo(() => all.filter(m => m.visibility === "complete"), [all]);
-  const searchable = useMemo(
-    () => all.filter(m => ["complete", "searchable"].includes(m.visibility)),
-    [all],
-  );
-  const { categories, manifestsByCategories } = useCategoriesRaw(complete);
+export function useCategories(manifests): Categories {
   const [selected, setSelected] = useState(DISCOVER_INITIAL_CATEGORY);
 
   const reset = useCallback(() => {
     setSelected(DISCOVER_INITIAL_CATEGORY);
   }, []);
 
-  return useMemo(
-    () => ({
-      manifests: {
-        all,
-        complete,
-        searchable,
-      },
-      searchable,
-      categories,
-      manifestsByCategories,
-      selected,
-      setSelected,
-      reset,
-    }),
-    [all, complete, searchable, categories, manifestsByCategories, selected, setSelected, reset],
-  );
-}
-
-function useCategoriesRaw(manifests: AppManifest[]): {
-  categories: string[];
-  manifestsByCategories: Map<string, AppManifest[]>;
-} {
   const manifestsByCategories = useMemo(() => {
-    const res = manifests.reduce((res, m) => {
-      m.categories.forEach(c => {
-        const list = res.has(c) ? [...res.get(c), m] : [m];
-        res.set(c, list);
-      });
+    const res = manifests.reduce(
+      (res, manifest) => {
+        manifest.categories.forEach(category => {
+          const list = res.has(category) ? [...res.get(category), manifest] : [manifest];
+          res.set(category, list);
+        });
 
-      return res;
-    }, new Map().set("all", manifests));
+        return res;
+      },
+      new Map().set("all", manifests),
+    );
 
     return res;
   }, [manifests]);
 
   const categories = useMemo(() => [...manifestsByCategories.keys()], [manifestsByCategories]);
 
-  return {
-    categories,
-    manifestsByCategories,
-  };
+  return useMemo(
+    () => ({
+      categories,
+      manifestsByCategories,
+      selected,
+      setSelected,
+      reset,
+    }),
+    [categories, manifestsByCategories, selected, reset],
+  );
 }
 
 export type RecentlyUsedDB = StateDB<DiscoverDB, DiscoverDB["recentlyUsed"]>;

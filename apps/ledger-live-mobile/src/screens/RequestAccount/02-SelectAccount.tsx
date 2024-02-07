@@ -6,22 +6,22 @@ import { useSelector } from "react-redux";
 import { CompositeScreenProps, useTheme } from "@react-navigation/native";
 import { CryptoOrTokenCurrency } from "@ledgerhq/types-cryptoassets";
 import { useGetAccountIds } from "@ledgerhq/live-common/wallet-api/react";
-import { accountsByCryptoCurrencyScreenSelector } from "../../reducers/accounts";
-import { TrackScreen } from "../../analytics";
-import LText from "../../components/LText";
-import FilteredSearchBar from "../../components/FilteredSearchBar";
-import AccountCard from "../../components/AccountCard";
-import KeyboardView from "../../components/KeyboardView";
-import { formatSearchResultsTuples } from "../../helpers/formatAccountSearchResults";
-import type { SearchResult } from "../../helpers/formatAccountSearchResults";
-import { NavigatorName, ScreenName } from "../../const";
-import Button from "../../components/Button";
+import { accountsByCryptoCurrencyScreenSelector } from "~/reducers/accounts";
+import { TrackScreen } from "~/analytics";
+import LText from "~/components/LText";
+import FilteredSearchBar from "~/components/FilteredSearchBar";
+import AccountCard from "~/components/AccountCard";
+import KeyboardView from "~/components/KeyboardView";
+import { formatSearchResultsTuples } from "~/helpers/formatAccountSearchResults";
+import type { SearchResult } from "~/helpers/formatAccountSearchResults";
+import { NavigatorName, ScreenName } from "~/const";
+import Button from "~/components/Button";
 import type {
   StackNavigatorNavigation,
   StackNavigatorProps,
-} from "../../components/RootNavigator/types/helpers";
-import { RequestAccountNavigatorParamList } from "../../components/RootNavigator/types/RequestAccountNavigator";
-import { BaseNavigatorStackParamList } from "../../components/RootNavigator/types/BaseNavigator";
+} from "~/components/RootNavigator/types/helpers";
+import { RequestAccountNavigatorParamList } from "~/components/RootNavigator/types/RequestAccountNavigator";
+import { BaseNavigatorStackParamList } from "~/components/RootNavigator/types/BaseNavigator";
 import { Flex } from "@ledgerhq/native-ui";
 
 const SEARCH_KEYS = [
@@ -75,7 +75,7 @@ const List = ({
   renderItem,
   renderFooter,
 }: {
-  items: { account: AccountLike; subAccount: SubAccount }[];
+  items: { account: AccountLike; subAccount?: SubAccount | null }[];
   renderItem: ListRenderItem<SearchResult>;
   renderFooter: React.ComponentType | React.ReactElement | null | undefined;
 }) => {
@@ -112,7 +112,7 @@ function SelectAccount({ navigation, route }: Props) {
     [navigation, onSuccess],
   );
 
-  const renderItem = useCallback(
+  const renderItem: ListRenderItem<SearchResult> = useCallback(
     ({ item }) => <Item item={item} onSelect={onSelect} />,
     [onSelect],
   );
@@ -151,7 +151,9 @@ function SelectAccount({ navigation, route }: Props) {
   );
 
   const renderList = useCallback(
-    items => <List items={items} renderItem={renderItem} renderFooter={renderFooter} />,
+    (items: { account: AccountLike; subAccount?: SubAccount | null }[]) => (
+      <List items={items} renderItem={renderItem} renderFooter={renderFooter} />
+    ),
     [renderFooter, renderItem],
   );
 

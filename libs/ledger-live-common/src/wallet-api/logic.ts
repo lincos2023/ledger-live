@@ -6,11 +6,18 @@ import {
 } from "./converters";
 import type { TrackingAPI } from "./tracking";
 import { AppManifest, TranslatableString, WalletAPITransaction } from "./types";
-import { isTokenAccount, isAccount, getMainAccount } from "../account/index";
+import {
+  isTokenAccount,
+  isAccount,
+  getMainAccount,
+  makeEmptyTokenAccount,
+  getParentAccount,
+} from "../account/index";
 import { Transaction } from "../generated/types";
 import { prepareMessageToSign } from "../hw/signMessage/index";
 import { getAccountBridge } from "../bridge";
 import { Exchange } from "../exchange/swap/types";
+import { findTokenById } from "@ledgerhq/cryptoassets";
 
 export function translateContent(content: string | TranslatableString, locale = "en"): string {
   if (!content || typeof content === "string") return content;
@@ -23,12 +30,6 @@ export type WalletAPIContext = {
   tracking: TrackingAPI;
 };
 
-function getParentAccount(account: AccountLike, fromAccounts: AccountLike[]): Account | undefined {
-  return isTokenAccount(account)
-    ? (fromAccounts.find(a => a.id === account.parentId) as Account)
-    : undefined;
-}
-
 export function receiveOnAccountLogic(
   { manifest, accounts, tracking }: WalletAPIContext,
   walletAccountId: string,
@@ -37,6 +38,7 @@ export function receiveOnAccountLogic(
     parentAccount: Account | undefined,
     accountAddress: string,
   ) => Promise<string>,
+  tokenCurrency?: string,
 ): Promise<string> {
   tracking.receiveRequested(manifest);
 
@@ -54,9 +56,11 @@ export function receiveOnAccountLogic(
   }
 
   const parentAccount = getParentAccount(account, accounts);
+  const mainAccount = getMainAccount(account, parentAccount);
+  const currency = tokenCurrency ? findTokenById(tokenCurrency) : null;
+  const receivingAccount = currency ? makeEmptyTokenAccount(mainAccount, currency) : account;
   const accountAddress = accountToWalletAPIAccount(account, parentAccount).address;
-
-  return uiNavigation(account, parentAccount, accountAddress);
+  return uiNavigation(receivingAccount, parentAccount, accountAddress);
 }
 
 export function signTransactionLogic(
@@ -72,6 +76,7 @@ export function signTransactionLogic(
       liveTx: Partial<Transaction>;
     },
   ) => Promise<SignedOperation>,
+  tokenCurrency?: string,
 ): Promise<SignedOperation> {
   tracking.signTransactionRequested(manifest);
 
@@ -99,8 +104,14 @@ export function signTransactionLogic(
     ? parentAccount?.currency.family
     : account.currency.family;
 
-  const { canEditFees, liveTx, hasFeesProvided } =
-    getWalletAPITransactionSignFlowInfos(transaction);
+  const mainAccount = getMainAccount(account, parentAccount);
+  const currency = tokenCurrency ? findTokenById(tokenCurrency) : null;
+  const signerAccount = currency ? makeEmptyTokenAccount(mainAccount, currency) : account;
+
+  const { canEditFees, liveTx, hasFeesProvided } = getWalletAPITransactionSignFlowInfos({
+    walletApiTransaction: transaction,
+    account: mainAccount,
+  });
 
   if (accountFamily !== liveTx.family) {
     return Promise.reject(
@@ -110,7 +121,7 @@ export function signTransactionLogic(
     );
   }
 
-  return uiNavigation(account, parentAccount, {
+  return uiNavigation(signerAccount, parentAccount, {
     canEditFees,
     liveTx,
     hasFeesProvided,
@@ -126,6 +137,7 @@ export function broadcastTransactionLogic(
     parentAccount: Account | undefined,
     signedOperation: SignedOperation,
   ) => Promise<string>,
+  tokenCurrency?: string,
 ): Promise<string> {
   if (!signedOperation) {
     tracking.broadcastFail(manifest);
@@ -144,9 +156,12 @@ export function broadcastTransactionLogic(
     return Promise.reject(new Error("Account required"));
   }
 
+  const currency = tokenCurrency ? findTokenById(tokenCurrency) : null;
   const parentAccount = getParentAccount(account, accounts);
+  const mainAccount = getMainAccount(account, parentAccount);
+  const signerAccount = currency ? makeEmptyTokenAccount(mainAccount, currency) : account;
 
-  return uiNavigation(account, parentAccount, signedOperation);
+  return uiNavigation(signerAccount, parentAccount, signedOperation);
 }
 
 export function signMessageLogic(
@@ -218,8 +233,10 @@ export const bitcoinFamillyAccountGetXPubLogic = (
 
 export function startExchangeLogic(
   { manifest, tracking }: WalletAPIContext,
-  exchangeType: "SWAP" | "SELL" | "FUND",
-  uiNavigation: (exchangeType: "SWAP" | "SELL" | "FUND") => Promise<string>,
+  exchangeType: "SWAP" | "FUND" | "SELL" | "SWAP_NG" | "SELL_NG" | "FUND_NG",
+  uiNavigation: (
+    exchangeType: "SWAP" | "FUND" | "SELL" | "SWAP_NG" | "SELL_NG" | "FUND_NG",
+  ) => Promise<string>,
 ): Promise<string> {
   tracking.startExchangeRequested(manifest);
 
@@ -237,6 +254,8 @@ export type CompleteExchangeRequest = {
   exchangeType: number;
   swapId?: string;
   rate?: number;
+  amountExpectedTo?: number;
+  tokenCurrency?: string;
 };
 export type CompleteExchangeUiRequest = {
   provider: string;
@@ -248,6 +267,8 @@ export type CompleteExchangeUiRequest = {
   exchangeType: number;
   swapId?: string;
   rate?: number;
+  amountExpectedTo?: number;
+  tokenCurrency?: string;
 };
 
 export function completeExchangeLogic(
@@ -263,6 +284,7 @@ export function completeExchangeLogic(
     exchangeType,
     swapId,
     rate,
+    tokenCurrency,
   }: CompleteExchangeRequest,
   uiNavigation: (request: CompleteExchangeUiRequest) => Promise<string>,
 ): Promise<string> {
@@ -297,19 +319,24 @@ export function completeExchangeLogic(
   }
 
   const fromParentAccount = getParentAccount(fromAccount, accounts);
+  const currency = tokenCurrency ? findTokenById(tokenCurrency) : null;
+  const newTokenAccount = currency ? makeEmptyTokenAccount(toAccount, currency) : null;
   const toParentAccount = toAccount ? getParentAccount(toAccount, accounts) : undefined;
   const exchange = {
     fromAccount,
-    fromParentAccount,
-    toAccount,
-    toParentAccount,
+    fromParentAccount: fromAccount !== fromParentAccount ? fromParentAccount : undefined,
+    toAccount: newTokenAccount ? newTokenAccount : toAccount,
+    toParentAccount: newTokenAccount ? toAccount : toParentAccount,
   };
 
   const accountBridge = getAccountBridge(fromAccount, fromParentAccount);
   const mainFromAccount = getMainAccount(fromAccount, fromParentAccount);
   const mainFromAccountFamily = mainFromAccount.currency.family;
 
-  const { liveTx } = getWalletAPITransactionSignFlowInfos(transaction);
+  const { liveTx } = getWalletAPITransactionSignFlowInfos({
+    walletApiTransaction: transaction,
+    account: mainFromAccount,
+  });
 
   if (liveTx.family !== mainFromAccountFamily) {
     return Promise.reject(
@@ -323,7 +350,7 @@ export function completeExchangeLogic(
    * 'subAccountId' is used for ETH and it's ERC-20 tokens.
    * This field is ignored for BTC
    */
-  const subAccountId = fromParentAccount ? fromAccount.id : undefined;
+  const subAccountId = exchange.fromParentAccount ? fromAccount.id : undefined;
 
   const bridgeTx = accountBridge.createTransaction(mainFromAccount);
   /**
@@ -338,7 +365,7 @@ export function completeExchangeLogic(
     },
     {
       ...liveTx,
-      feesStrategy,
+      feesStrategy: feesStrategy.toLowerCase(),
       subAccountId,
     },
   );

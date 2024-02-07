@@ -22,6 +22,9 @@ import { CompleteExchangeRequestEvent } from "@ledgerhq/live-common/exchange/pla
 import { RemoveImageEvent } from "@ledgerhq/live-common/hw/staxRemoveImage";
 import { RenameDeviceEvent } from "@ledgerhq/live-common/hw/renameDevice";
 import { LaunchArguments } from "react-native-launch-arguments";
+import { DeviceEventEmitter } from "react-native";
+import { DeviceUSB } from "../models/devices";
+import logReport from "../../src/log-report";
 
 export type MockDeviceEvent =
   | ConnectAppEvent
@@ -72,6 +75,8 @@ export type MessageData =
       payload: MockDeviceEvent[];
     }
   | { type: "acceptTerms" }
+  | { type: "addUSB"; payload: DeviceUSB }
+  | { type: "getLogs"; fileName: string }
   | { type: "navigate"; payload: string }
   | { type: "importSettings"; payload: Partial<SettingsState> }
   | {
@@ -149,6 +154,19 @@ function onMessage(event: WebSocketMessageEvent) {
     case "navigate":
       navigate(msg.payload, {});
       break;
+    case "addUSB":
+      DeviceEventEmitter.emit("onDeviceConnect", msg.payload);
+      break;
+    case "getLogs":
+      const payload = JSON.stringify(logReport.getLogs());
+
+      ws.send(
+        JSON.stringify({
+          type: "appLogs",
+          fileName: msg.fileName,
+          payload,
+        }),
+      );
     default:
       break;
   }

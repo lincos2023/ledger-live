@@ -1,7 +1,9 @@
-import { useFeature } from "@ledgerhq/live-common/featureFlags/index";
+import { useFeature, isRecoverDisplayed } from "@ledgerhq/live-common/featureFlags/index";
 import {
-  usePostOnboardingPath,
+  useAlreadySeededDevicePath,
+  useRestore24Path,
   useUpsellPath,
+  useCustomPath,
 } from "@ledgerhq/live-common/hooks/recoverFeatureFlag";
 import { useStartPostOnboardingCallback } from "@ledgerhq/live-common/postOnboarding/hooks/index";
 import {
@@ -46,9 +48,10 @@ import { RecoveryHowTo3 } from "~/renderer/components/Onboarding/Screens/Tutoria
 import { UseRecoverySheet } from "~/renderer/components/Onboarding/Screens/Tutorial/screens/UseRecoverySheet";
 import { openURL } from "~/renderer/linking";
 import { QuizzPopin } from "~/renderer/modals/OnboardingQuizz/OnboardingQuizzModal";
-import { useDynamicUrl } from "~/renderer/terms";
+import { useLocalizedUrl } from "~/renderer/hooks/useLocalizedUrls";
 import RecoveryWarning from "../../Help/RecoveryWarning";
 import { UseCase } from "../../index";
+import { urls } from "~/config/urls";
 
 const FlowStepperContainer = styled(Flex)`
   width: 100%;
@@ -110,7 +113,7 @@ const FlowStepper: React.FC<FlowStepperProps> = ({
   handleBack,
   handleContinue,
 }) => {
-  const urlFaq = useDynamicUrl("faq");
+  const urlFaq = useLocalizedUrl(urls.faq);
 
   const handleHelp = () => openURL(urlFaq);
 
@@ -230,7 +233,9 @@ export default function Tutorial({ useCase }: Props) {
   const { pathname } = useLocation();
   const recoverFF = useFeature("protectServicesDesktop");
   const upsellPath = useUpsellPath(recoverFF);
-  const postOnboardingPath = usePostOnboardingPath(recoverFF);
+  const restore24Path = useRestore24Path(recoverFF);
+  const devicePairingPath = useAlreadySeededDevicePath(recoverFF);
+  const recoverRestorePath = useCustomPath(recoverFF, "restore", "lld-restore-with-recover");
   const recoverDiscoverPath = useMemo(() => {
     return `/recover/${recoverFF?.params?.protectId}?redirectTo=disclaimerRestore`;
   }, [recoverFF?.params?.protectId]);
@@ -567,15 +572,32 @@ export default function Tutorial({ useCase }: Props) {
             deviceModelId: connectedDevice.modelId,
             fallbackIfNoAction: () => history.push("/"),
           });
-        if (upsellPath) {
-          history.push(upsellPath);
+
+        if (isRecoverDisplayed(recoverFF, connectedDevice?.modelId)) {
+          if (useCase === UseCase.setupDevice && upsellPath) {
+            history.push(upsellPath);
+          } else if (useCase === UseCase.recoveryPhrase && restore24Path) {
+            history.push(restore24Path);
+          } else if (useCase === UseCase.connectDevice && devicePairingPath) {
+            history.push(devicePairingPath);
+          }
         }
       }, 0);
       return () => {
         clearTimeout(timeout);
       };
     }
-  }, [connectedDevice, handleStartPostOnboarding, history, onboardingDone, upsellPath]);
+  }, [
+    connectedDevice,
+    devicePairingPath,
+    handleStartPostOnboarding,
+    history,
+    onboardingDone,
+    restore24Path,
+    upsellPath,
+    useCase,
+    recoverFF,
+  ]);
 
   const steps = useMemo(() => {
     const stepList = [
@@ -681,8 +703,8 @@ export default function Tutorial({ useCase }: Props) {
   const handleNextPin = useCallback(() => {
     let targetPath: string | object = `${path}/${ScreenId.existingRecoveryPhrase}`;
 
-    if (useCase === UseCase.recover && postOnboardingPath) {
-      const [pathname, search] = postOnboardingPath.split("?");
+    if (useCase === UseCase.recover && recoverRestorePath) {
+      const [pathname, search] = recoverRestorePath.split("?");
       targetPath = {
         pathname,
         search: search ? `?${search}` : undefined,
@@ -696,7 +718,7 @@ export default function Tutorial({ useCase }: Props) {
     }
 
     handleNextInDrawer(setHelpPinCode, targetPath);
-  }, [connectedDevice?.deviceId, dispatch, handleNextInDrawer, path, postOnboardingPath, useCase]);
+  }, [connectedDevice?.deviceId, dispatch, handleNextInDrawer, path, recoverRestorePath, useCase]);
 
   return (
     <>

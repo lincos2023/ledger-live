@@ -1,5 +1,4 @@
 import type { Account, AccountLike, AccountRaw, AccountRawLike } from "@ledgerhq/types-live";
-import { BigNumber } from "bignumber.js";
 import type { Transaction } from "../../generated/types";
 import { ExchangeTypes, RateTypes } from "@ledgerhq/hw-app-exchange";
 
@@ -7,7 +6,7 @@ export type CompleteExchangeRequestEvent =
   | { type: "complete-exchange" }
   | {
       type: "complete-exchange-requested";
-      estimatedFees: BigNumber;
+      estimatedFees: string;
     }
   | {
       type: "complete-exchange-error";
@@ -42,6 +41,15 @@ export type ExchangeSellRaw = {
   fromAccount: AccountRawLike;
 };
 
+export type StartExchangeInput = {
+  deviceId: string;
+  exchangeType: number;
+  appVersion?: string;
+  provider?: string;
+  fromAccountId?: string;
+  toAccountId?: string;
+};
+
 interface CompleteExchangeInputCommon {
   rateType?: RateTypes;
   deviceId?: string;
@@ -49,6 +57,7 @@ interface CompleteExchangeInputCommon {
   binaryPayload: string;
   signature: string;
   transaction: Transaction;
+  amountExpectedTo?: number;
 }
 export interface CompleteExchangeInputSell extends CompleteExchangeInputCommon {
   readonly exchangeType: ExchangeTypes.Sell;

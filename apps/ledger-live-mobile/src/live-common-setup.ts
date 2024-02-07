@@ -35,6 +35,7 @@ listen(log => {
 setGlobalOnBridgeError(e => logger.critical(e));
 setDeviceMode("polling");
 setWalletAPIVersion(WALLET_API_VERSION);
+
 setSupportedCurrencies([
   "avalanche_c_chain",
   "axelar",
@@ -42,7 +43,9 @@ setSupportedCurrencies([
   "secret_network",
   "umee",
   "desmos",
+  "dydx",
   "onomy",
+  "sei_network",
   "quicksilver",
   "persistence",
   "bitcoin",
@@ -79,6 +82,8 @@ setSupportedCurrencies([
   "bitcoin_testnet",
   "ethereum_ropsten",
   "ethereum_goerli",
+  "ethereum_sepolia",
+  "ethereum_holesky",
   "elrond",
   "hedera",
   "cardano",
@@ -105,6 +110,7 @@ setSupportedCurrencies([
   "moonriver",
   "velas_evm",
   "syscoin",
+  "vechain",
   "internet_computer",
   "klaytn",
   "polygon_zk_evm",
@@ -115,6 +121,11 @@ setSupportedCurrencies([
   "telos_evm",
   "coreum",
   "injective",
+  "casper",
+  "neon_evm",
+  "lukso",
+  "linea",
+  "linea_goerli",
 ]);
 
 if (Config.BLE_LOG_LEVEL) BluetoothTransport.setLogLevel(Config.BLE_LOG_LEVEL);
@@ -183,7 +194,7 @@ registerTransportModule({
   id: "ble",
   open: (id: string, timeoutMs?: number, context?: TraceContext) =>
     BluetoothTransport.open(id, timeoutMs, context),
-  disconnect: id => BluetoothTransport.disconnect(id),
+  disconnect: id => BluetoothTransport.disconnectDevice(id),
 });
 
 if (process.env.NODE_ENV === "production") {

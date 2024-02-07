@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 import { IconsLegacy, NumberedList, Text } from "@ledgerhq/native-ui";
 import { useFeature } from "@ledgerhq/live-common/featureFlags/index";
 import { Linking } from "react-native";
-import Button from "../../../../../components/wrappedUi/Button";
-import { TrackScreen } from "../../../../../analytics";
-import QueuedDrawer from "../../../../../components/QueuedDrawer";
-import { urls } from "../../../../../config/urls";
+import Button from "~/components/wrappedUi/Button";
+import { TrackScreen } from "~/analytics";
+import QueuedDrawer from "~/components/QueuedDrawer";
+import { urls } from "~/utils/urls";
 
 const RestoreWithProtectScene = () => {
   const { t } = useTranslation();

@@ -4,7 +4,7 @@ import Config from "react-native-config";
 import thunk from "redux-thunk";
 import { createStore, applyMiddleware, compose, type Middleware } from "redux";
 import { importPostOnboardingState } from "@ledgerhq/live-common/postOnboarding/actions";
-import { CounterValuesStateRaw } from "@ledgerhq/live-common/countervalues/types";
+import { CounterValuesStateRaw } from "@ledgerhq/live-countervalues/types";
 import { findCryptoCurrencyById } from "@ledgerhq/live-common/currencies/index";
 import {
   getAccounts,
@@ -14,13 +14,14 @@ import {
   getPostOnboardingState,
   getProtect,
 } from "../db";
-import reducers from "../reducers";
-import { importSettings } from "../actions/settings";
-import { importStore as importAccounts } from "../actions/accounts";
-import { importBle } from "../actions/ble";
-import { updateProtectData, updateProtectStatus } from "../actions/protect";
-import { INITIAL_STATE as settingsState, supportedCountervalues } from "../reducers/settings";
-import { listCachedCurrencyIds, hydrateCurrency } from "../bridge/cache";
+import reducers from "~/reducers";
+import { importSettings, setSupportedCounterValues } from "~/actions/settings";
+import { importStore as importAccounts } from "~/actions/accounts";
+import { importBle } from "~/actions/ble";
+import { updateProtectData, updateProtectStatus } from "~/actions/protect";
+import { INITIAL_STATE as settingsState } from "~/reducers/settings";
+import { listCachedCurrencyIds, hydrateCurrency } from "~/bridge/cache";
+import { getCryptoCurrencyById, listSupportedFiats } from "@ledgerhq/live-common/currencies/index";
 
 const middlewares: [Middleware] = [thunk];
 
@@ -78,11 +79,29 @@ export default class LedgerStoreProvider extends Component<
             .catch((reason: unknown) => ({ status: "rejected", reason })),
         ),
     );
+    const bitcoin = getCryptoCurrencyById("bitcoin");
+    const ethereum = getCryptoCurrencyById("ethereum");
+    const possibleIntermediaries = [bitcoin, ethereum];
+
+    const getsupportedCountervalues = async () => {
+      const supportedFiats = await listSupportedFiats();
+      const supportedCounterValues = [...supportedFiats, ...possibleIntermediaries]
+        .map(currency => ({
+          value: currency.ticker,
+          ticker: currency.ticker,
+          label: `${currency.name} - ${currency.ticker}`,
+          currency,
+        }))
+        .sort((a, b) => (a.currency.name < b.currency.name ? -1 : 1));
+      return supportedCounterValues;
+    };
+    const supportedCounterValues = await getsupportedCountervalues();
+    store.dispatch(setSupportedCounterValues(supportedCounterValues));
 
     if (
       settingsData &&
       settingsData.counterValue &&
-      !supportedCountervalues.find(({ ticker }) => ticker === settingsData.counterValue)
+      !supportedCounterValues.find(({ ticker }) => ticker === settingsData.counterValue)
     ) {
       settingsData.counterValue = settingsState.counterValue;
     }

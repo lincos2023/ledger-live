@@ -3,25 +3,28 @@ import { useDispatch, useSelector } from "react-redux";
 import { Linking } from "react-native";
 import SplashScreen from "react-native-splash-screen";
 import { getStateFromPath, LinkingOptions, NavigationContainer } from "@react-navigation/native";
+import Config from "react-native-config";
 import { useFlipper } from "@react-navigation/devtools";
 import { useRemoteLiveAppContext } from "@ledgerhq/live-common/platform/providers/RemoteLiveAppProvider/index";
 import { DEFAULT_MULTIBUY_APP_ID } from "@ledgerhq/live-common/wallet-api/constants";
 
-import Braze from "react-native-appboy-sdk";
+import Braze from "@braze/react-native-sdk";
 import { LiveAppManifest } from "@ledgerhq/live-common/platform/types";
 import useFeature from "@ledgerhq/live-common/featureFlags/useFeature";
-
 import * as Sentry from "@sentry/react-native";
-import { hasCompletedOnboardingSelector } from "../reducers/settings";
+
+import { hasCompletedOnboardingSelector } from "~/reducers/settings";
 import { navigationRef, isReadyRef } from "../rootnavigation";
-import { ScreenName, NavigatorName } from "../const";
-import { setWallectConnectUri } from "../actions/walletconnect";
-import { useGeneralTermsAccepted } from "../logic/terms";
-import { Writeable } from "../types/helpers";
+import { ScreenName, NavigatorName } from "~/const";
+import { setWallectConnectUri } from "~/actions/walletconnect";
+import { useGeneralTermsAccepted } from "~/logic/terms";
+import { Writeable } from "~/types/helpers";
 import { lightTheme, darkTheme, Theme } from "../colors";
-import { track } from "../analytics";
-import { setEarnInfoModal } from "../actions/earn";
+import { track } from "~/analytics";
+import { setEarnInfoModal } from "~/actions/earn";
 import { OptionalFeatureMap } from "@ledgerhq/types-live";
+import { blockPasswordLock } from "../actions/appstate";
+import { useStorylyContext } from "~/components/StorylyStories/StorylyProvider";
 
 const routingInstrumentation = new Sentry.ReactNavigationInstrumentation();
 
@@ -42,6 +45,11 @@ function isWalletConnectLink(url: string) {
     url.substring(0, 26) === "https://ledger.com/wc"
   );
 }
+
+function isStorylyLink(url: string) {
+  return url.startsWith("ledgerlive://storyly?");
+}
+
 // https://docs.walletconnect.com/mobile-linking#wallet-support
 function isValidWalletConnectUrl(_url: string) {
   let url = _url;
@@ -186,21 +194,22 @@ const linkingOptions = (featureFlags: OptionalFeatureMap) => ({
               /**
                * ie: "ledgerlive://portfolio" -> will redirect to the portfolio
                */
+
               [NavigatorName.Portfolio]: {
                 screens: {
+                  [NavigatorName.PortfolioAccounts]: {
+                    screens: {
+                      /**
+                       * "ledgerlive://accounts" opens the main portfolio screen of accounts.
+                       */
+                      [ScreenName.Accounts]: "accounts",
+                    },
+                  },
                   [NavigatorName.WalletTab]: {
                     screens: {
                       [ScreenName.Portfolio]: "portfolio",
                       [ScreenName.WalletNftGallery]: "nftgallery",
-                      [NavigatorName.PortfolioAccounts]: {
-                        screens: {
-                          /**
-                           * @params ?currency: string
-                           * ie: "ledgerlive://account?currency=bitcoin" will open the first bitcoin account
-                           */
-                          [ScreenName.Accounts]: "account",
-                        },
-                      },
+
                       ...(featureFlags?.ptxEarn?.enabled && {
                         [NavigatorName.Market]: {
                           screens: {
@@ -292,14 +301,16 @@ const linkingOptions = (featureFlags: OptionalFeatureMap) => ({
               [ScreenName.SendCoin]: "send",
             },
           },
-
+          /** "ledgerlive://account" will open the list of all accounts, where the redirection logic is. */
           [NavigatorName.Accounts]: {
             screens: {
               /**
-               * @params ?id: string
-               * ie: "ledgerlive://accounts?currency=ethereum&address={{eth_account_address}}"
+               * @params ?currency: string
+               * @params ?address: string
+               * ie: "ledgerlive://account?currency=ethereum&address={{eth_account_address}} will open that account's assets screen.
+               * Currency param alone e.g. "ledgerlive://account?currency=tezos" will open the Tezos Assets screen.
                */
-              [ScreenName.Accounts]: "accounts",
+              [ScreenName.Accounts]: "account",
             },
           },
 
@@ -386,10 +397,19 @@ const getOnboardingLinkingOptions = (
     screens: !acceptedTermsOfUse
       ? {}
       : {
+          [NavigatorName.BaseOnboarding]: {
+            screens: {
+              [NavigatorName.Onboarding]: {
+                initialRouteName: ScreenName.OnboardingWelcome,
+                screens: {
+                  [ScreenName.OnboardingBleDevicePairingFlow]: "sync-onboarding",
+                },
+              },
+            },
+          },
           [NavigatorName.Base]: {
             screens: {
               [ScreenName.PostBuyDeviceScreen]: "hw-purchase-success",
-              [ScreenName.BleDevicePairingFlow]: "sync-onboarding",
               /**
                * @params ?platform: string
                * ie: "ledgerlive://discover/protect?theme=light" will open the catalog and the protect dapp with a light theme as parameter
@@ -415,13 +435,17 @@ export const DeeplinksProvider = ({
   const dispatch = useDispatch();
   const hasCompletedOnboarding = useSelector(hasCompletedOnboardingSelector);
   const ptxEarnFeature = useFeature("ptxEarn");
-  const features = useMemo(() => ({ ptxEarn: ptxEarnFeature }), [ptxEarnFeature]);
+  const features = useMemo(
+    () => (ptxEarnFeature ? { ptxEarn: ptxEarnFeature } : {}),
+    [ptxEarnFeature],
+  );
 
   const { state } = useRemoteLiveAppContext();
   const liveAppProviderInitialized = !!state.value || !!state.error;
   const manifests = state?.value?.liveAppByIndex || emptyObject;
   // Can be either true, false or null, meaning we don't know yet
   const userAcceptedTerms = useGeneralTermsAccepted();
+  const storylyContext = useStorylyContext();
 
   const linking = useMemo<LinkingOptions<ReactNavigation.RootParamList>>(
     () =>
@@ -450,6 +474,9 @@ export const DeeplinksProvider = ({
               dispatch(setWallectConnectUri(uri));
               return;
             }
+            if (isStorylyLink(url)) {
+              storylyContext.setUrl(url);
+            }
 
             listener(getProxyURL(url));
           });
@@ -471,6 +498,17 @@ export const DeeplinksProvider = ({
             installApp,
             appName,
           } = query;
+
+          if (!ajsPropSource && !Config.MOCK) {
+            /** Internal deep links cause the app to "background" on Android.
+             * If "password lock" is enabled then this opens a re-authentication modal every time the user navigates by deep link.
+             * If there is no ajsPropSource then assume deep link is from an internal app, so temporarily prevent password lock:
+             */
+            dispatch(blockPasswordLock(true)); // TODO: Remove this and the timeout after AuthPass refactor
+            setTimeout(() => {
+              dispatch(blockPasswordLock(false));
+            }, 4000); // Allow 4 seconds before resetting password lock, unless on Detox e2e test, as this breaks CI.
+          }
 
           // Track deeplink only when ajsPropSource attribute exists.
           if (ajsPropSource) {
@@ -530,14 +568,15 @@ export const DeeplinksProvider = ({
 
           return getStateFromPath(path, config);
         },
-      } as LinkingOptions<ReactNavigation.RootParamList>),
+      }) as LinkingOptions<ReactNavigation.RootParamList>,
     [
       hasCompletedOnboarding,
+      features,
+      userAcceptedTerms,
       dispatch,
+      storylyContext,
       liveAppProviderInitialized,
       manifests,
-      userAcceptedTerms,
-      features,
     ],
   );
   const [isReady, setIsReady] = React.useState(false);

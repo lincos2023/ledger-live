@@ -13,6 +13,7 @@ type State = {
   freezeReduxDevice: boolean;
   completeExchangeRequested: boolean;
   isLoading: boolean;
+  estimatedFees: string | undefined;
 };
 
 type CompleteExchangeState = AppState & State;
@@ -27,6 +28,7 @@ type CompleteExchangeRequest = {
   rateType?: number;
   swapId?: string;
   rate?: number;
+  amountExpectedTo?: number;
 };
 type Result =
   | {
@@ -39,7 +41,7 @@ type Result =
 type CompleteExchangeAction = Action<CompleteExchangeRequest, CompleteExchangeState, Result>;
 export type ExchangeRequestEvent =
   | { type: "complete-exchange" }
-  | { type: "complete-exchange-requested" }
+  | { type: "complete-exchange-requested"; estimatedFees: string }
   | { type: "complete-exchange-error"; error: Error }
   | { type: "complete-exchange-result"; completeExchangeResult: Transaction };
 
@@ -63,6 +65,7 @@ const initialState: State = {
   completeExchangeRequested: false,
   freezeReduxDevice: false,
   isLoading: true,
+  estimatedFees: undefined,
 };
 
 const reducer = (state: State, e: ExchangeRequestEvent) => {
@@ -84,7 +87,7 @@ const reducer = (state: State, e: ExchangeRequestEvent) => {
     case "complete-exchange-requested":
       return {
         ...state,
-        completeExchangeRequested: true,
+        estimatedFees: e.estimatedFees,
         isLoading: false,
       };
     case "complete-exchange-result":

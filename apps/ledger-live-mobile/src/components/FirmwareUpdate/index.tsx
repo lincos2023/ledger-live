@@ -6,14 +6,14 @@ import { Device } from "@ledgerhq/live-common/hw/actions/types";
 import { Button, Icons } from "@ledgerhq/native-ui";
 import { DeviceInfo } from "@ledgerhq/types-live";
 import { BluetoothNotSupportedError } from "@ledgerhq/live-common/errors";
-import useLatestFirmware from "@ledgerhq/live-common/hooks/useLatestFirmware";
+import { useLatestFirmware } from "@ledgerhq/live-common/device/hooks/useLatestFirmware";
 import {
   DisconnectedDevice,
   DisconnectedDeviceDuringOperation,
   WebsocketConnectionError,
 } from "@ledgerhq/errors";
-import { nextBackgroundEventSelector } from "../../reducers/appstate";
-import { clearBackgroundEvents, dequeueBackgroundEvent } from "../../actions/appstate";
+import { nextBackgroundEventSelector } from "~/reducers/appstate";
+import { clearBackgroundEvents, dequeueBackgroundEvent } from "~/actions/appstate";
 import QueuedDrawer from "../QueuedDrawer";
 import GenericErrorView from "../GenericErrorView";
 import ConfirmRecoveryStep from "./ConfirmRecoveryStep";
@@ -23,9 +23,9 @@ import ConfirmPinStep from "./ConfirmPinStep";
 import ConfirmUpdateStep from "./ConfirmUpdateStep";
 import DownloadingUpdateStep from "./DownloadingUpdateStep";
 import DeviceLanguageStep from "./DeviceLanguageStep";
-import { track } from "../../analytics";
+import { track } from "~/analytics";
 import { FwUpdateForegroundEvent } from "./types";
-import { FwUpdateBackgroundEvent } from "../../reducers/types";
+import { FwUpdateBackgroundEvent } from "~/reducers/types";
 
 type Props = {
   device: Device;

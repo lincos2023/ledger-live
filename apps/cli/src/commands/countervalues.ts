@@ -18,14 +18,15 @@ import {
   formatCurrencyUnit,
   findCurrencyByTicker,
   listFiatCurrencies,
+  findCryptoCurrencyById,
 } from "@ledgerhq/live-common/currencies/index";
 import {
   initialState,
   calculateMany,
   loadCountervalues,
   resolveTrackingPairs,
-} from "@ledgerhq/live-common/countervalues/logic";
-import CountervaluesAPI from "@ledgerhq/live-common/countervalues/api/index";
+} from "@ledgerhq/live-countervalues/logic";
+import CountervaluesAPI from "@ledgerhq/live-countervalues/api/index";
 const histoFormatters = {
   stats: (histo, currency, countervalue) =>
     (currency.ticker + " to " + countervalue.ticker).padEnd(12) +
@@ -222,18 +223,18 @@ function asPortfolioRange(period: string): PortfolioRange {
 }
 
 async function getCurrencies(opts: Opts): Promise<Currency[]> {
-  let tickers;
+  let ids;
 
   if (opts.marketcap) {
-    tickers = await CountervaluesAPI.fetchMarketcapTickers();
-    tickers.splice(opts.marketcap);
+    ids = await CountervaluesAPI.fetchIdsSortedByMarketcap();
+    ids.splice(opts.marketcap);
   }
 
   if (opts.currency) {
-    tickers = (tickers || []).concat(opts.currency);
+    ids = (ids || []).concat(opts.currency);
   }
 
-  return uniq((tickers || ["BTC"]).map(findCurrencyByTicker).filter(Boolean));
+  return uniq((ids || ["bitcoin"]).map(findCryptoCurrencyById).filter(Boolean));
 }
 
 function getCountervalues(opts: Opts): Currency[] {

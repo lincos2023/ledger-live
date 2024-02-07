@@ -10,6 +10,10 @@ import { Transaction as cardanoTransaction } from "../families/cardano/types";
 import { TransactionRaw as cardanoTransactionRaw } from "../families/cardano/types";
 import { TransactionStatus as cardanoTransactionStatus } from "../families/cardano/types";
 import { TransactionStatusRaw as cardanoTransactionStatusRaw } from "../families/cardano/types";
+import { Transaction as casperTransaction } from "../families/casper/types";
+import { TransactionRaw as casperTransactionRaw } from "../families/casper/types";
+import { TransactionStatus as casperTransactionStatus } from "../families/casper/types";
+import { TransactionStatusRaw as casperTransactionStatusRaw } from "../families/casper/types";
 import { Transaction as celoTransaction } from "../families/celo/types";
 import { TransactionRaw as celoTransactionRaw } from "../families/celo/types";
 import { TransactionStatus as celoTransactionStatus } from "../families/celo/types";
@@ -42,14 +46,14 @@ import { Transaction as internet_computerTransaction } from "../families/interne
 import { TransactionRaw as internet_computerTransactionRaw } from "../families/internet_computer/types";
 import { TransactionStatus as internet_computerTransactionStatus } from "../families/internet_computer/types";
 import { TransactionStatusRaw as internet_computerTransactionStatusRaw } from "../families/internet_computer/types";
-import { Transaction as nearTransaction } from "../families/near/types";
-import { TransactionRaw as nearTransactionRaw } from "../families/near/types";
-import { TransactionStatus as nearTransactionStatus } from "../families/near/types";
-import { TransactionStatusRaw as nearTransactionStatusRaw } from "../families/near/types";
-import { Transaction as polkadotTransaction } from "@ledgerhq/coin-polkadot/types";
-import { TransactionRaw as polkadotTransactionRaw } from "@ledgerhq/coin-polkadot/types";
-import { TransactionStatus as polkadotTransactionStatus } from "@ledgerhq/coin-polkadot/types";
-import { TransactionStatusRaw as polkadotTransactionStatusRaw } from "@ledgerhq/coin-polkadot/types";
+import { Transaction as nearTransaction } from "@ledgerhq/coin-near/types";
+import { TransactionRaw as nearTransactionRaw } from "@ledgerhq/coin-near/types";
+import { TransactionStatus as nearTransactionStatus } from "@ledgerhq/coin-near/types";
+import { TransactionStatusRaw as nearTransactionStatusRaw } from "@ledgerhq/coin-near/types";
+import { Transaction as polkadotTransaction } from "@ledgerhq/coin-polkadot/types/index";
+import { TransactionRaw as polkadotTransactionRaw } from "@ledgerhq/coin-polkadot/types/index";
+import { TransactionStatus as polkadotTransactionStatus } from "@ledgerhq/coin-polkadot/types/index";
+import { TransactionStatusRaw as polkadotTransactionStatusRaw } from "@ledgerhq/coin-polkadot/types/index";
 import { Transaction as rippleTransaction } from "../families/ripple/types";
 import { TransactionRaw as rippleTransactionRaw } from "../families/ripple/types";
 import { TransactionStatus as rippleTransactionStatus } from "../families/ripple/types";
@@ -74,11 +78,16 @@ import { Transaction as tronTransaction } from "../families/tron/types";
 import { TransactionRaw as tronTransactionRaw } from "../families/tron/types";
 import { TransactionStatus as tronTransactionStatus } from "../families/tron/types";
 import { TransactionStatusRaw as tronTransactionStatusRaw } from "../families/tron/types";
+import { Transaction as vechainTransaction } from "../families/vechain/types";
+import { TransactionRaw as vechainTransactionRaw } from "../families/vechain/types";
+import { TransactionStatus as vechainTransactionStatus } from "../families/vechain/types";
+import { TransactionStatusRaw as vechainTransactionStatusRaw } from "../families/vechain/types";
 
 export type Transaction =
   | algorandTransaction
   | bitcoinTransaction
   | cardanoTransaction
+  | casperTransaction
   | celoTransaction
   | cosmosTransaction
   | crypto_orgTransaction
@@ -94,12 +103,14 @@ export type Transaction =
   | stacksTransaction
   | stellarTransaction
   | tezosTransaction
-  | tronTransaction;
+  | tronTransaction
+  | vechainTransaction;
 
 export type TransactionRaw =
   | algorandTransactionRaw
   | bitcoinTransactionRaw
   | cardanoTransactionRaw
+  | casperTransactionRaw
   | celoTransactionRaw
   | cosmosTransactionRaw
   | crypto_orgTransactionRaw
@@ -115,12 +126,14 @@ export type TransactionRaw =
   | stacksTransactionRaw
   | stellarTransactionRaw
   | tezosTransactionRaw
-  | tronTransactionRaw;
+  | tronTransactionRaw
+  | vechainTransactionRaw;
 
 export type TransactionStatus =
   | algorandTransactionStatus
   | bitcoinTransactionStatus
   | cardanoTransactionStatus
+  | casperTransactionStatus
   | celoTransactionStatus
   | cosmosTransactionStatus
   | crypto_orgTransactionStatus
@@ -136,12 +149,14 @@ export type TransactionStatus =
   | stacksTransactionStatus
   | stellarTransactionStatus
   | tezosTransactionStatus
-  | tronTransactionStatus;
+  | tronTransactionStatus
+  | vechainTransactionStatus;
 
 export type TransactionStatusRaw =
   | algorandTransactionStatusRaw
   | bitcoinTransactionStatusRaw
   | cardanoTransactionStatusRaw
+  | casperTransactionStatusRaw
   | celoTransactionStatusRaw
   | cosmosTransactionStatusRaw
   | crypto_orgTransactionStatusRaw
@@ -157,4 +172,5 @@ export type TransactionStatusRaw =
   | stacksTransactionStatusRaw
   | stellarTransactionStatusRaw
   | tezosTransactionStatusRaw
-  | tronTransactionStatusRaw;
+  | tronTransactionStatusRaw
+  | vechainTransactionStatusRaw;

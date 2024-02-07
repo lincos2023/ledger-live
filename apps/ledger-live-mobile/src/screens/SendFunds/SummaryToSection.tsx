@@ -10,9 +10,9 @@ import { useFeature } from "@ledgerhq/live-common/featureFlags/index";
 import { CryptoCurrency } from "@ledgerhq/types-cryptoassets";
 
 import SummaryRowCustom from "./SummaryRowCustom";
-import Circle from "../../components/Circle";
-import LText from "../../components/LText";
-import QRcode from "../../icons/QRcode";
+import Circle from "~/components/Circle";
+import LText from "~/components/LText";
+import QRcode from "~/icons/QRcode";
 
 type Props = {
   transaction: Transaction;
@@ -69,7 +69,7 @@ function SummaryToSection({ transaction, currency }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
-  const { enabled: isDomainResolutionEnabled, params } = useFeature("domainInputResolution");
+  const { enabled: isDomainResolutionEnabled, params } = useFeature("domainInputResolution") ?? {};
   const isCurrencySupported = params?.supportedCurrencyIds?.includes(currency.id) || false;
 
   const shouldTryResolvingDomain = useMemo(() => {

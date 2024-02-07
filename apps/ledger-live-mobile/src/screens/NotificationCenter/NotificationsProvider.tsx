@@ -10,10 +10,10 @@ import VersionNumber from "react-native-version-number";
 import Config from "react-native-config";
 import { getEnv } from "@ledgerhq/live-env";
 import { getNotifications, saveNotifications } from "../../db";
-import { useLocale } from "../../context/Locale";
-import { cryptoCurrenciesSelector } from "../../reducers/accounts";
-import { track } from "../../analytics";
-import { lastSeenDeviceSelector } from "../../reducers/settings";
+import { useLocale } from "~/context/Locale";
+import { cryptoCurrenciesSelector } from "~/reducers/accounts";
+import { track } from "~/analytics";
+import { lastSeenDeviceSelector } from "~/reducers/settings";
 import fetchApi from "../Settings/Debug/__mocks__/announcements";
 import networkApi from "../Settings/Debug/__mocks__/serviceStatus";
 
@@ -74,7 +74,15 @@ export default function NotificationsProvider({ children }: Props) {
     [],
   );
   const onSave = useCallback(
-    ({ announcements, seenIds, lastUpdateTime }) =>
+    ({
+      announcements,
+      seenIds,
+      lastUpdateTime,
+    }: {
+      announcements: Announcement[];
+      seenIds: string[];
+      lastUpdateTime: number;
+    }) =>
       saveNotifications({
         announcements,
         seenIds,
@@ -108,7 +116,7 @@ export default function NotificationsProvider({ children }: Props) {
     },
     [pushToast, initDateRef],
   );
-  const onAnnouncementRead = useCallback(({ uuid, utm_campaign: utmCampaign }) => {
+  const onAnnouncementRead = useCallback(({ uuid, utm_campaign: utmCampaign }: Announcement) => {
     track("Announcement Viewed", {
       uuid,
       utm_campaign: utmCampaign,

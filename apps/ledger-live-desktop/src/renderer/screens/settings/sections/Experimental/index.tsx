@@ -6,7 +6,7 @@ import { useDispatch } from "react-redux";
 import { setEnvOnAllThreads } from "~/helpers/env";
 import { openModal } from "~/renderer/actions/modals";
 import TrackPage from "~/renderer/analytics/TrackPage";
-import useEnv from "~/renderer/hooks/useEnv";
+import useEnv from "@ledgerhq/live-common/hooks/useEnv";
 import Alert from "~/renderer/components/Alert";
 import Button from "~/renderer/components/Button";
 import { setShowClearCacheBanner } from "~/renderer/actions/settings";
@@ -37,7 +37,7 @@ const ExperimentalFeatureRow = ({
   const envValue = useEnv(feature.name);
   const isDefault = isEnvDefault(feature.name);
   const onChange = useCallback(
-    (name: EnvName, value) => {
+    (name: EnvName, value: unknown) => {
       if (dirty) {
         onDirtyChange();
       }

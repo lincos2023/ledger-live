@@ -9,27 +9,27 @@ import { Device } from "@ledgerhq/live-common/hw/actions/types";
 import { useBleDevicesScanning } from "@ledgerhq/live-common/ble/hooks/useBleDevicesScanning";
 import { usePostOnboardingEntryPointVisibleOnWallet } from "@ledgerhq/live-common/postOnboarding/hooks/usePostOnboardingEntryPointVisibleOnWallet";
 import { DeviceModelId } from "@ledgerhq/types-devices";
-
+import SafeAreaView from "../SafeAreaView";
 import TransportBLE from "../../react-native-hw-transport-ble";
-import { TrackScreen, track } from "../../analytics";
-import { NavigatorName, ScreenName } from "../../const";
-import { knownDevicesSelector } from "../../reducers/ble";
+import { TrackScreen, track } from "~/analytics";
+import { NavigatorName, ScreenName } from "~/const";
+import { knownDevicesSelector } from "~/reducers/ble";
 import Touchable from "../Touchable";
-import Item from "./Item";
-import { saveBleDeviceName } from "../../actions/ble";
-import { setHasConnectedDevice, updateMainNavigatorVisibility } from "../../actions/appstate";
-import { setLastConnectedDevice, setReadOnlyMode } from "../../actions/settings";
+import { saveBleDeviceName } from "~/actions/ble";
+import { setHasConnectedDevice, updateMainNavigatorVisibility } from "~/actions/appstate";
+import { setLastConnectedDevice, setReadOnlyMode } from "~/actions/settings";
 import { BaseComposite, StackNavigatorProps } from "../RootNavigator/types/helpers";
 import { ManagerNavigatorStackParamList } from "../RootNavigator/types/ManagerNavigator";
 import { MainNavigatorParamList } from "../RootNavigator/types/MainNavigator";
 import PostOnboardingEntryPointCard from "../PostOnboarding/PostOnboardingEntryPointCard";
 import BleDevicePairingFlow, { SetHeaderOptionsRequest } from "../BleDevicePairingFlow";
 import BuyDeviceCTA from "../BuyDeviceCTA";
-import { useResetOnNavigationFocusState } from "../../helpers/useResetOnNavigationFocusState";
+import { useResetOnNavigationFocusState } from "~/helpers/useResetOnNavigationFocusState";
 import { useDebouncedRequireBluetooth } from "../RequiresBLE/hooks/useRequireBluetooth";
 import RequiresBluetoothDrawer from "../RequiresBLE/RequiresBluetoothDrawer";
 import QueuedDrawer from "../QueuedDrawer";
 import ServicesWidget from "../ServicesWidget";
+import { DeviceList } from "./DeviceList";
 
 export type { SetHeaderOptionsRequest };
 
@@ -307,7 +307,7 @@ export default function SelectDevice({
   );
 
   return (
-    <>
+    <SafeAreaView edges={["left", "right"]} isFlex>
       {withMyLedgerTracking ? <TrackScreen {...trackScreenProps} /> : null}
       <RequiresBluetoothDrawer
         isOpenedOnIssue={isBleRequired}
@@ -354,53 +354,65 @@ export default function SelectDevice({
               </Touchable>
             )}
           </Flex>
-          <ScrollContainer my={4}>
-            {deviceList.length > 0 ? (
-              deviceList.map(device => (
-                <Item key={device.deviceId} device={device as Device} onPress={handleOnSelect} />
-              ))
-            ) : (
-              <Touchable
-                onPress={isChoiceDrawerDisplayedOnAddDevice ? onAddNewPress : openBlePairingFlow}
-                {...addNewButtonEventProps}
-              >
-                <Flex
-                  p={5}
-                  mb={4}
-                  borderRadius={5}
-                  flexDirection="row"
-                  alignItems="center"
-                  borderColor="neutral.c40"
-                  borderStyle="dashed"
-                  borderWidth="1px"
+          <ScrollContainer
+            my={4}
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "space-between",
+              flexDirection: "column",
+            }}
+          >
+            <Flex>
+              {deviceList.length > 0 ? (
+                <DeviceList deviceList={deviceList} handleOnSelect={handleOnSelect} />
+              ) : (
+                <Touchable
+                  onPress={isChoiceDrawerDisplayedOnAddDevice ? onAddNewPress : openBlePairingFlow}
+                  {...addNewButtonEventProps}
                 >
-                  <IconsLegacy.PlusMedium color="neutral.c90" size={20} />
-                  <Text variant="large" fontWeight="semiBold" ml={5}>
-                    {t(
-                      `manager.selectDevice.${
-                        Platform.OS === "android" ? "addWithBluetooth" : "addALedger"
-                      }`,
-                    )}
+                  <Flex
+                    p={5}
+                    mb={4}
+                    borderRadius={5}
+                    flexDirection="row"
+                    alignItems="center"
+                    borderColor="neutral.c40"
+                    borderStyle="dashed"
+                    borderWidth="1px"
+                  >
+                    <IconsLegacy.PlusMedium color="neutral.c90" size={20} />
+                    <Text variant="large" fontWeight="semiBold" ml={5}>
+                      {t(
+                        `manager.selectDevice.${
+                          Platform.OS === "android" ? "addWithBluetooth" : "addALedger"
+                        }`,
+                      )}
+                    </Text>
+                  </Flex>
+                </Touchable>
+              )}
+              {Platform.OS === "android" &&
+                USBDevice === undefined &&
+                ProxyDevice === undefined && (
+                  <Text
+                    color="neutral.c100"
+                    variant="large"
+                    fontWeight="semiBold"
+                    fontSize={4}
+                    lineHeight="21px"
+                    mt={3}
+                  >
+                    <Trans i18nKey="manager.selectDevice.otgBanner" />
                   </Text>
-                </Flex>
-              </Touchable>
-            )}
-            {Platform.OS === "android" && USBDevice === undefined && ProxyDevice === undefined && (
-              <Text
-                color="neutral.c100"
-                variant="large"
-                fontWeight="semiBold"
-                fontSize={4}
-                lineHeight="21px"
-              >
-                <Trans i18nKey="manager.selectDevice.otgBanner" />
-              </Text>
-            )}
-            {displayServicesWidget && <ServicesWidget />}
+                )}
+              {displayServicesWidget && <ServicesWidget />}
+            </Flex>
+
+            <Flex alignItems="center" mt={10} mb={8}>
+              <BuyDeviceCTA />
+            </Flex>
           </ScrollContainer>
-          <Flex alignItems="center" mt={5}>
-            <BuyDeviceCTA />
-          </Flex>
+
           <QueuedDrawer
             isRequestingToBeOpened={isAddNewDrawerOpen}
             onClose={() => setIsAddNewDrawerOpen(false)}
@@ -473,6 +485,6 @@ export default function SelectDevice({
           </QueuedDrawer>
         </Flex>
       )}
-    </>
+    </SafeAreaView>
   );
 }

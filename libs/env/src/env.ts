@@ -43,7 +43,7 @@ const stringArrayParser = (v: unknown): string[] | undefined => {
 
 const envDefinitions = {
   ADDRESS_POISONING_FAMILIES: {
-    def: "ethereum,evm,tron",
+    def: "evm,tron",
     parser: stringParser,
     desc: "List of families impacted by the address poisoning attack",
   },
@@ -61,6 +61,16 @@ const envDefinitions = {
     def: "https://icp.coin.ledger.com/",
     parser: stringParser,
     desc: "Rosetta API for ICP",
+  },
+  API_CASPER_INDEXER_ENDPOINT: {
+    parser: stringParser,
+    def: "https://casper.coin.ledger.com/indexer",
+    desc: "Casper API url indexer",
+  },
+  API_CASPER_NODE_ENDPOINT: {
+    parser: stringParser,
+    def: "https://casper.coin.ledger.com/node/",
+    desc: "Casper API url node",
   },
   API_ALGORAND_BLOCKCHAIN_EXPLORER_API_ENDPOINT: {
     def: "https://algorand.coin.ledger.com",
@@ -179,8 +189,13 @@ const envDefinitions = {
   },
   SOLANA_VALIDATORS_APP_BASE_URL: {
     parser: stringParser,
-    def: "https://validators-solana.coin.ledger.com/api/v1/validators",
+    def: "https://earn.api.live.ledger.com/v0/network/solana/validator-details",
     desc: "base url for validators.app validator list",
+  },
+  SOLANA_TESTNET_VALIDATORS_APP_BASE_URL: {
+    parser: stringParser,
+    def: "https://validators-solana.coin.ledger.com/api/v1/validators",
+    desc: "base url for testnet validators.app validator list",
   },
   SOLANA_TX_CONFIRMATION_TIMEOUT: {
     def: 100 * 1000,
@@ -191,6 +206,11 @@ const envDefinitions = {
     def: "https://hedera.coin.ledger.com",
     parser: stringParser,
     desc: "mirror node API for Hedera",
+  },
+  API_VECHAIN_THOREST: {
+    def: "https://vechain.coin.ledger.com",
+    parser: stringParser,
+    desc: "Thorest API for VeChain",
   },
   BASE_SOCKET_URL: {
     def: "wss://scriptrunner.api.live.ledger.com/update",
@@ -207,6 +227,13 @@ const envDefinitions = {
     parser: intParser,
     desc: "define the default value of spec.skipMutationsTimeout (if not overriden by spec)",
   },
+  BUY_API_BASE: {
+    def: "https://buy.api.live.ledger.com/buy/v1",
+
+    parser: stringParser,
+    desc: "Buy crypto API base url - version 1",
+  },
+
   CARDANO_API_ENDPOINT: {
     def: "https://cardano.coin.ledger.com/api",
     parser: stringParser,
@@ -225,22 +252,22 @@ const envDefinitions = {
   CRYPTO_ORG_INDEXER: {
     def: "https://cryptoorg-rpc-indexer.coin.ledger.com",
     parser: stringParser,
-    desc: "location of the crypto.org indexer API",
+    desc: "location of the Cronos POS Chain (formerly Crypto.org) indexer API",
   },
   CRYPTO_ORG_TESTNET_INDEXER: {
-    def: "https://crypto.org/explorer/croeseid4",
+    def: "https://cronos-pos.org/explorer/croeseid4",
     parser: stringParser,
-    desc: "location of the crypto.org indexer testnet API",
+    desc: "location of the Cronos POS Chain (formerly Crypto.org) indexer testnet API",
   },
   CRYPTO_ORG_RPC_URL: {
     def: "https://cryptoorg-rpc-node.coin.ledger.com",
     parser: stringParser,
-    desc: "location of the crypto.org chain node",
+    desc: "location of the Cronos POS Chain (formerly Crypto.org) chain node",
   },
   CRYPTO_ORG_TESTNET_RPC_URL: {
     def: "https://rpc-testnet-croeseid-4.crypto.org",
     parser: stringParser,
-    desc: "location of the crypto.org chain testnet node",
+    desc: "location of the Cronos POS Chain (formerly Crypto.org) chain testnet node",
   },
   DEBUG_UTXO_DISPLAY: {
     def: 4,
@@ -283,7 +310,7 @@ const envDefinitions = {
     desc: "disable the version check for firmware update eligibility",
   },
   EIP1559_ENABLED_CURRENCIES: {
-    def: "ethereum,ethereum_goerli,polygon",
+    def: "ethereum,ethereum_goerli,ethereum_sepolia,ethereum_holesky,polygon",
     parser: stringArrayParser,
     desc: "set the currency ids where EIP1559 is enabled",
   },
@@ -546,6 +573,11 @@ const envDefinitions = {
     parser: boolParser,
     desc: "allow the creation of legacy accounts",
   },
+  SIMPLE_HASH_API_BASE: {
+    def: "https://simplehash.api.live.ledger.com/api/v0",
+    parser: stringParser,
+    desc: "SimpleHash API base url",
+  },
   SKIP_ONBOARDING: {
     def: false,
     parser: boolParser,
@@ -569,14 +601,9 @@ const envDefinitions = {
     desc: "Use speculos websocket interface instead of Rest API",
   },
   SWAP_API_BASE: {
-    def: "https://swap.ledger.com/v4",
+    def: "https://swap.ledger.com/v5",
     parser: stringParser,
     desc: "Swap API base",
-  },
-  SWAP_API_BASE_V5: {
-    def: "https://swap-stg.ledger.com/v5",
-    parser: stringParser,
-    desc: "Swap API base staging version 5",
   },
   SYNC_ALL_INTERVAL: {
     def: 8 * 60 * 1000,
@@ -718,11 +745,6 @@ const envDefinitions = {
     parser: stringParser,
     desc: "bucket S3 of the dynamic cryptoassets list",
   },
-  CURRENCY_CONFIG_BASE_URL: {
-    def: "https://ledger-live-production-default-rtdb.europe-west1.firebasedatabase.app/",
-    parser: stringParser,
-    desc: "Currency config firebase url",
-  },
   FEATURE_FLAGS: {
     def: "{}",
     parser: jsonParser,
@@ -738,30 +760,20 @@ const envDefinitions = {
     parser: intParser,
     desc: "Time after which an optimisc operation is considered stuck",
   },
-  EDIT_TX_LEGACY_GASPRICE_GAP_SPEEDUP_FACTOR: {
-    def: 0.1,
+  EVM_REPLACE_TX_LEGACY_GASPRICE_FACTOR: {
+    def: 1.3,
     parser: floatParser,
-    desc: "Speedup transaction gasprice gap factor for NON-EIP1559 for edit eth transaction feature",
+    desc: "Replace transaction gasprice factor for legacy evm transaction. This value should be 1.1 minimum since this is the minimum increase required by most nodes",
   },
-  EDIT_TX_LEGACY_GASPRICE_GAP_CANCEL_FACTOR: {
-    def: 0.3,
+  EVM_REPLACE_TX_EIP1559_MAXFEE_FACTOR: {
+    def: 1.3,
     parser: floatParser,
-    desc: "Cancel transaction gasprice gap factor for NON-EIP1559 for edit eth transaction feature",
+    desc: "Replace transaction max fee factor for EIP1559 evm transaction. This value should be 1.1 minimum since this is the minimum increase required by most nodes",
   },
-  EDIT_TX_EIP1559_FEE_GAP_SPEEDUP_FACTOR: {
-    def: 0.1,
+  EVM_REPLACE_TX_EIP1559_MAXPRIORITYFEE_FACTOR: {
+    def: 1.1,
     parser: floatParser,
-    desc: "Speedup transaction max priority fee gap factor for EIP1559 for edit eth transaction feature",
-  },
-  EDIT_TX_EIP1559_MAXPRIORITYFEE_GAP_CANCEL_FACTOR: {
-    def: 0.1,
-    parser: floatParser,
-    desc: "Cancel transaction max priority fee gap factor for EIP1559 for edit eth transaction feature",
-  },
-  EDIT_TX_EIP1559_MAXFEE_GAP_CANCEL_FACTOR: {
-    def: 0.3,
-    parser: floatParser,
-    desc: "Cancel transaction max fee gap factor for EIP1559 for edit eth transaction feature",
+    desc: "Replace transaction max priority fee factor for EIP1559 evm transaction. This value should be 1.1 minimum since this is the minimum increase required by most nodes",
   },
   ENABLE_NETWORK_LOGS: {
     def: false,
@@ -773,20 +785,20 @@ const envDefinitions = {
     parser: stringArrayParser,
     desc: "Fuse search attributes to find a currency according to user input",
   },
-  EDIT_TX_NON_EIP1559_GASPRICE_GAP_SPEEDUP_FACTOR: {
-    def: 0.1,
-    parser: floatParser,
-    desc: "Speedup transaction gasprice gap factor for NON-EIP1559 for edit eth transaction feature",
-  },
-  EDIT_TX_NON_EIP1559_GASPRICE_GAP_CANCEL_FACTOR: {
-    def: 0.3,
-    parser: floatParser,
-    desc: "Cancel transaction gasprice gap factor for NON-EIP1559 for edit eth transaction feature",
-  },
   VERBOSE: {
     def: [] as Array<string>,
     parser: stringArrayParser,
     desc: 'Sets up debug console printing of logs. `VERBOSE=1` or `VERBOSE=true`: to print all logs | `VERBOSE="apdu,hw,transport,hid-verbose"` : filtering on a list of log `type` separated by a `,`',
+  },
+  DEFAULT_TRANSACTION_POLLING_INTERVAL: {
+    def: 30 * 1000,
+    parser: intParser,
+    desc: "Default interval to poll for transaction confirmation in speedup/cancel evm flow (in ms)",
+  },
+  LOW_BATTERY_PERCENTAGE: {
+    def: 20,
+    parser: intParser,
+    desc: "Configure the low battery percentage threshold",
   },
 };
 

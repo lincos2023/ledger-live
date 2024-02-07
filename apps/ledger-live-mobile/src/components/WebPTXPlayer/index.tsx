@@ -29,10 +29,11 @@ import { Web3AppWebview } from "../Web3AppWebview";
 import { RootNavigationComposite, StackNavigatorNavigation } from "../RootNavigator/types/helpers";
 import { BaseNavigatorStackParamList } from "../RootNavigator/types/BaseNavigator";
 import { initialWebviewState } from "../Web3AppWebview/helpers";
-import { track } from "../../analytics";
+import { track } from "~/analytics";
 import { NavigationHeaderCloseButtonAdvanced } from "../NavigationHeaderCloseButton";
-import { NavigatorName, ScreenName } from "../../const";
+import { NavigatorName, ScreenName } from "~/const";
 import { Loading } from "../Loading";
+import { usePTXCustomHandlers } from "./CustomHandlers";
 
 type BackToInternalDomainProps = {
   manifest: AppManifest;
@@ -236,6 +237,8 @@ export const WebPTXPlayer = ({ manifest, inputs, disableHeader }: Props) => {
     }
   }, [manifest, navigation, webviewState, isInternalApp, disableHeader, onClose]);
 
+  const customHandlers = usePTXCustomHandlers(manifest);
+
   return (
     <SafeAreaView style={[styles.root]}>
       <Web3AppWebview
@@ -243,6 +246,7 @@ export const WebPTXPlayer = ({ manifest, inputs, disableHeader }: Props) => {
         manifest={manifest}
         inputs={inputs}
         onStateChange={setWebviewState}
+        customHandlers={customHandlers}
       />
       {webviewState.loading ? <Loading /> : null}
     </SafeAreaView>

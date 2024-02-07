@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, memo } from "react";
 
 import invariant from "invariant";
-import { getNFT } from "@ledgerhq/live-common/nft/index";
+import { getNFT } from "@ledgerhq/live-nft";
 import { View, StyleSheet, TextInput, TouchableWithoutFeedback, Keyboard } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BigNumber } from "bignumber.js";
@@ -11,14 +11,14 @@ import { useNavigation, useTheme } from "@react-navigation/native";
 import { getAccountBridge } from "@ledgerhq/live-common/bridge/index";
 import { getMainAccount } from "@ledgerhq/live-common/account/index";
 import useBridgeTransaction from "@ledgerhq/live-common/bridge/useBridgeTransaction";
-import type { SendFundsNavigatorStackParamList } from "../../components/RootNavigator/types/SendFundsNavigator";
-import { BaseComposite, StackNavigatorProps } from "../../components/RootNavigator/types/helpers";
-import { accountScreenSelector } from "../../reducers/accounts";
-import TranslatedError from "../../components/TranslatedError";
-import KeyboardView from "../../components/KeyboardView";
-import Button from "../../components/Button";
-import LText from "../../components/LText";
-import { ScreenName } from "../../const";
+import type { SendFundsNavigatorStackParamList } from "~/components/RootNavigator/types/SendFundsNavigator";
+import { BaseComposite, StackNavigatorProps } from "~/components/RootNavigator/types/helpers";
+import { accountScreenSelector } from "~/reducers/accounts";
+import TranslatedError from "~/components/TranslatedError";
+import KeyboardView from "~/components/KeyboardView";
+import Button from "~/components/Button";
+import LText from "~/components/LText";
+import { ScreenName } from "~/const";
 
 type Props = BaseComposite<
   StackNavigatorProps<SendFundsNavigatorStackParamList, ScreenName.SendAmountNft>
@@ -42,7 +42,7 @@ const SendAmountNFT = ({ route }: Props) => {
   invariant(transaction, "transaction required");
 
   const onQuantityChange = useCallback(
-    text => {
+    (text: string) => {
       const newQuantity = new BigNumber(text.replace(/\D/g, ""));
       if (!bridge) return;
 

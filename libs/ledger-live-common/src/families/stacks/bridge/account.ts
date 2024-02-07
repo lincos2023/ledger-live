@@ -2,7 +2,6 @@ import BlockstackApp from "@zondax/ledger-stacks";
 import { c32address } from "c32check";
 import { StacksMainnet } from "@stacks/network";
 import { BigNumber } from "bignumber.js";
-import BN from "bn.js";
 import { Observable } from "rxjs";
 import invariant from "invariant";
 import {
@@ -21,7 +20,7 @@ import {
   TransactionVersion,
   AnchorMode,
   UnsignedTokenTransferOptions,
-  estimateTransfer,
+  estimateTransaction,
   makeUnsignedSTXTokenTransfer,
 } from "@stacks/transactions";
 
@@ -87,7 +86,9 @@ const getTransactionStatus = async (a: Account, t: Transaction): Promise<Transac
   if (!recipient) {
     errors.recipient = new RecipientRequired();
   } else if (!validateAddress(recipient).isValid) {
-    errors.recipient = new InvalidAddress();
+    errors.recipient = new InvalidAddress("", {
+      currencyName: a.currency.name,
+    });
   } else if (address === recipient) {
     errors.recipient = new InvalidAddressBecauseDestinationIsAlsoSource();
   } else if (!fee || fee.eq(0)) {
@@ -141,14 +142,14 @@ const estimateMaxSpendable = async ({
     memo,
     network,
     publicKey: xpub,
-    amount: new BN(amount.toFixed()),
+    amount: amount.toFixed(),
   };
 
   const tx = await makeUnsignedSTXTokenTransfer(options);
 
-  const fee = await estimateTransfer(tx);
+  const [feeEst] = await estimateTransaction(tx.payload);
 
-  const diff = spendableBalance.minus(new BigNumber(fee.toString()));
+  const diff = spendableBalance.minus(new BigNumber(feeEst.fee));
   return diff.gte(0) ? diff : new BigNumber(0);
 };
 
@@ -170,7 +171,7 @@ const prepareTransaction = async (a: Account, t: Transaction): Promise<Transacti
       memo,
       network,
       publicKey: xpub,
-      amount: new BN(amount.toFixed()),
+      amount: amount.toFixed(),
     };
 
     const tx = await makeUnsignedSTXTokenTransfer(options);
@@ -181,9 +182,9 @@ const prepareTransaction = async (a: Account, t: Transaction): Promise<Transacti
         : AddressVersion.TestnetSingleSig;
     const senderAddress = c32address(addressVersion, tx.auth.spendingCondition!.signer);
 
-    const fee = await estimateTransfer(tx);
+    const [fee] = await estimateTransaction(tx.payload);
 
-    patch.fee = new BigNumber(fee.toString());
+    patch.fee = new BigNumber(fee.fee);
     patch.nonce = await findNextNonce(senderAddress, pendingOperations);
 
     if (useAllAmount) patch.amount = spendableBalance.minus(patch.fee);
@@ -208,7 +209,9 @@ const signOperation: SignOperationFnSignature<Transaction> = ({
           const { recipient, fee, anchorMode, network, memo, amount, nonce } = transaction;
 
           if (!xpub) {
-            throw new InvalidAddress();
+            throw new InvalidAddress("", {
+              currencyName: account.currency.name,
+            });
           }
 
           if (!fee) {
@@ -222,14 +225,14 @@ const signOperation: SignOperationFnSignature<Transaction> = ({
           const blockstack = new BlockstackApp(transport);
 
           const options: UnsignedTokenTransferOptions = {
-            amount: new BN(amount.toFixed()),
+            amount: amount.toFixed(),
             recipient,
             anchorMode,
             network: StacksNetwork[network],
             memo,
             publicKey: xpub,
-            fee: new BN(fee.toFixed()),
-            nonce: new BN(nonce.toFixed()),
+            fee: fee.toFixed(),
+            nonce: nonce.toFixed(),
           };
 
           const tx = await makeUnsignedSTXTokenTransfer(options);
@@ -241,7 +244,7 @@ const signOperation: SignOperationFnSignature<Transaction> = ({
           });
 
           // Sign by device
-          const result = await blockstack.sign(getPath(derivationPath), serializedTx);
+          const result = await blockstack.sign(getPath(derivationPath), Buffer.from(serializedTx));
           throwIfError(result);
 
           o.next({

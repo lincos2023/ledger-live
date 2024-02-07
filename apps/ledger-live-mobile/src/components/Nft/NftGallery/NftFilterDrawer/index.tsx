@@ -1,21 +1,21 @@
 import React, { FC } from "react";
 import { useTranslation } from "react-i18next";
 
-import { TrackScreen } from "../../../../analytics";
+import { TrackScreen } from "~/analytics";
 import NftFilterSection from "./NftFilterSection";
 import { NftFilterCurrencyItem } from "./NftFilterItem";
-import { NftGalleryChainFiltersState } from "../../../../reducers/types";
-import { NavigatorName, ScreenName } from "../../../../const/navigation";
+import { NftGalleryChainFiltersState } from "~/reducers/types";
+import { NavigatorName, ScreenName } from "~/const/navigation";
 import { useNavigation } from "@react-navigation/native";
-import { track } from "../../../../analytics";
+import { track } from "~/analytics";
 import { View } from "react-native";
 import QueuedDrawer from "../../../QueuedDrawer";
 
 type Props = {
-  readonly isOpen: boolean;
-  readonly onClose: () => void;
-  readonly toggleFilter: (filter: keyof NftGalleryChainFiltersState) => void;
-  readonly filters: NftGalleryChainFiltersState;
+  isOpen: boolean;
+  onClose: () => void;
+  toggleFilter: (filter: keyof NftGalleryChainFiltersState) => void;
+  filters: NftGalleryChainFiltersState;
 };
 const NftFilterDraw: FC<Props> = ({ onClose, isOpen, filters, toggleFilter }) => {
   const { t } = useTranslation();

@@ -29,8 +29,8 @@ import quitApp from "./quitApp";
 import { LatestFirmwareVersionRequired } from "../errors";
 import { mustUpgrade } from "../apps";
 import isUpdateAvailable from "./isUpdateAvailable";
-import manager from "../manager";
 import { LockedDeviceEvent } from "./actions/types";
+import { getLatestFirmwareForDeviceUseCase } from "../device/use-cases/getLatestFirmwareForDeviceUseCase";
 
 export type RequiresDerivation = {
   currencyId: string;
@@ -137,7 +137,7 @@ export const openAppFromDashboard = (
       merge(
         // Nb Allows LLD/LLM to update lastSeenDevice, this can run in parallel
         // since there are no more device exchanges.
-        from(manager.getLatestFirmwareForDevice(deviceInfo)).pipe(
+        from(getLatestFirmwareForDeviceUseCase(deviceInfo)).pipe(
           concatMap(latestFirmware =>
             of<ConnectAppEvent>({
               type: "device-update-last-seen",
@@ -159,7 +159,6 @@ export const openAppFromDashboard = (
             ),
             catchError(e => {
               if (e && e instanceof TransportStatusError) {
-                // @ts-expect-error TransportStatusError to be typed on ledgerjs
                 switch (e.statusCode) {
                   case 0x6984: // No StatusCodes definition
                   case 0x6807: // No StatusCodes definition
@@ -240,7 +239,6 @@ const derivationLogic = (
       }
 
       if (e instanceof TransportStatusError) {
-        // @ts-expect-error TransportStatusError to be typed on ledgerjs
         const { statusCode } = e;
 
         if (
@@ -308,7 +306,7 @@ const cmd = ({ deviceId, request }: Input): Observable<ConnectAppEvent> => {
                 if (requireLatestFirmware || outdatedApp) {
                   return from(getDeviceInfo(transport)).pipe(
                     mergeMap((deviceInfo: DeviceInfo) =>
-                      from(manager.getLatestFirmwareForDevice(deviceInfo)).pipe(
+                      from(getLatestFirmwareForDeviceUseCase(deviceInfo)).pipe(
                         mergeMap((latest: FirmwareUpdateContext | undefined | null) => {
                           const isLatest =
                             !latest || semver.eq(deviceInfo.version, latest.final.version);
@@ -439,7 +437,6 @@ const cmd = ({ deviceId, request }: Input): Observable<ConnectAppEvent> => {
               }
 
               if (e && e instanceof TransportStatusError) {
-                // @ts-expect-error TransportStatusError to be typed on ledgerjs
                 switch (e.statusCode) {
                   case StatusCodes.CLA_NOT_SUPPORTED: // in 1.3.1 dashboard
                   case StatusCodes.INS_NOT_SUPPORTED: // in 1.3.1 and bitcoin app

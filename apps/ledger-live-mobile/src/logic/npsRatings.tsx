@@ -3,23 +3,23 @@ import { useSelector, useDispatch } from "react-redux";
 import { add, isBefore, parseISO } from "date-fns";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useFeature from "@ledgerhq/live-common/featureFlags/useFeature";
-import { accountsWithPositiveBalanceCountSelector } from "../reducers/accounts";
+import { accountsWithPositiveBalanceCountSelector } from "~/reducers/accounts";
 import {
   ratingsModalOpenSelector,
   ratingsModalLockedSelector,
   ratingsCurrentRouteNameSelector,
   ratingsHappyMomentSelector,
   ratingsDataOfUserSelector,
-} from "../reducers/ratings";
+} from "~/reducers/ratings";
 import {
   setRatingsModalOpen,
   setRatingsCurrentRouteName,
   setRatingsHappyMoment,
   setRatingsDataOfUser,
-} from "../actions/ratings";
-import { track } from "../analytics";
-import { setNotificationsModalLocked } from "../actions/notifications";
-import { setUserNps } from "../actions/settings";
+} from "~/actions/ratings";
+import { track } from "~/analytics";
+import { setNotificationsModalLocked } from "~/actions/notifications";
+import { setUserNps } from "~/actions/settings";
 
 export type RatingsHappyMoment = {
   timeout?: number;
@@ -79,7 +79,7 @@ const useNpsRatings = () => {
   const dispatch = useDispatch();
 
   const setRatingsModalOpenCallback = useCallback(
-    isRatingsModalOpen => {
+    (isRatingsModalOpen: boolean) => {
       if (!isRatingsModalOpen) {
         dispatch(setRatingsModalOpen(isRatingsModalOpen));
         dispatch(setNotificationsModalLocked(false));
@@ -172,7 +172,7 @@ const useNpsRatings = () => {
   );
 
   const onRatingsRouteChange = useCallback(
-    (ratingsNewRoute, isOtherModalOpened = false) => {
+    (ratingsNewRoute: string, isOtherModalOpened = false) => {
       if (ratingsHappyMoment?.timeout) {
         dispatch(setNotificationsModalLocked(false));
         clearTimeout(ratingsHappyMoment?.timeout);
@@ -213,7 +213,7 @@ const useNpsRatings = () => {
   );
 
   const updateRatingsDataOfUserInStateAndStore = useCallback(
-    ratingsDataOfUserUpdated => {
+    (ratingsDataOfUserUpdated: RatingsDataOfUser) => {
       dispatch(setRatingsDataOfUser(ratingsDataOfUserUpdated));
       setRatingsDataOfUserInStorage(ratingsDataOfUserUpdated);
     },
@@ -251,7 +251,7 @@ const useNpsRatings = () => {
   }, [isRatingsModalLocked, dispatch, setRatingsModalOpenCallback]);
 
   const handleRatingsSetDateOfNextAllowedRequest = useCallback(
-    (delay, additionalParams = {}) => {
+    (delay?: Duration, additionalParams = {}) => {
       if (delay !== null && delay !== undefined) {
         const dateOfNextAllowedRequest: Date = add(Date.now(), delay);
         updateRatingsDataOfUserInStateAndStore({
@@ -326,7 +326,7 @@ const useNpsRatings = () => {
   }, [ratingsDataOfUser, updateRatingsDataOfUserInStateAndStore]);
 
   const updateNpsRating = useCallback(
-    nps => {
+    (nps: number) => {
       dispatch(setUserNps(nps));
     },
     [dispatch],

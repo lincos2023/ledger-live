@@ -16,7 +16,6 @@ import { ParamListBase, useNavigation, useTheme } from "@react-navigation/native
 import { useTheme as useThemeFromStyledComponents } from "styled-components/native";
 import { Flex, Text, Icons } from "@ledgerhq/native-ui";
 import type { AppRequest } from "@ledgerhq/live-common/hw/actions/app";
-import type { InitSellResult } from "@ledgerhq/live-common/exchange/sell/types";
 import { TokenCurrency } from "@ledgerhq/types-cryptoassets";
 import type { AccountLike, AnyMessage, DeviceInfo } from "@ledgerhq/types-live";
 import { Transaction } from "@ledgerhq/live-common/generated/types";
@@ -24,7 +23,7 @@ import { Exchange, ExchangeRate, InitSwapResult } from "@ledgerhq/live-common/ex
 import { AppAndVersion } from "@ledgerhq/live-common/hw/connectApp";
 import { LedgerErrorConstructor } from "@ledgerhq/errors/lib/helpers";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { setLastSeenDeviceInfo } from "../../actions/settings";
+import { setLastSeenDeviceInfo } from "~/actions/settings";
 import ValidateOnDevice from "../ValidateOnDevice";
 import ValidateMessageOnDevice from "../ValidateMessageOnDevice";
 import {
@@ -41,7 +40,6 @@ import {
   renderBootloaderStep,
   renderExchange,
   renderConfirmSwap,
-  renderConfirmSell,
   LoadingAppInstall,
   AutoRepair,
   renderAllowLanguageInstallation,
@@ -54,7 +52,7 @@ import {
 import PreventNativeBack from "../PreventNativeBack";
 import SkipLock from "../behaviour/SkipLock";
 import DeviceActionProgress from "../DeviceActionProgress";
-import { PartialNullable } from "../../types/helpers";
+import { PartialNullable } from "~/types/helpers";
 import ModalLock from "../ModalLock";
 
 type LedgerError = InstanceType<LedgerErrorConstructor<{ [key: string]: unknown }>>;
@@ -103,9 +101,6 @@ type Status = PartialNullable<{
   completeExchangeStarted: boolean;
   completeExchangeResult: Transaction;
   completeExchangeError: Error;
-  initSellRequested: boolean;
-  initSellResult: InitSellResult;
-  initSellError: Error;
   installingApp: boolean;
   progress: number;
   listingApps: boolean;
@@ -212,9 +207,6 @@ export function DeviceActionDefaultRendering<R, H extends Status, P>({
     completeExchangeStarted,
     completeExchangeResult,
     completeExchangeError,
-    initSellRequested,
-    initSellResult,
-    initSellError,
     installingApp,
     progress,
     listingApps,
@@ -409,13 +401,6 @@ export function DeviceActionDefaultRendering<R, H extends Status, P>({
       exchange: req?.exchange,
       amountExpectedTo: status.amountExpectedTo,
       estimatedFees: status.estimatedFees,
-    });
-  }
-
-  if (initSellRequested && !initSellResult && !initSellError) {
-    return renderConfirmSell({
-      t,
-      device: selectedDevice,
     });
   }
 

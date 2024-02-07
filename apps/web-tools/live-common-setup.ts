@@ -1,7 +1,10 @@
-import { setSupportedCurrencies } from "@ledgerhq/live-common/lib/currencies/index";
-import { setWalletAPIVersion } from "@ledgerhq/live-common/lib/wallet-api/version";
-import { WALLET_API_VERSION } from "@ledgerhq/live-common/lib/wallet-api/constants";
+import { setSupportedCurrencies } from "@ledgerhq/live-common/currencies/index";
+import { setWalletAPIVersion } from "@ledgerhq/live-common/wallet-api/version";
+import { WALLET_API_VERSION } from "@ledgerhq/live-common/wallet-api/constants";
+import { LiveConfig } from "@ledgerhq/live-config/LiveConfig";
+import liveConfigSchema from "@ledgerhq/live-common/config/sharedConfig";
 
+LiveConfig.setConfig(liveConfigSchema);
 setWalletAPIVersion(WALLET_API_VERSION);
 
 setSupportedCurrencies([
@@ -10,7 +13,9 @@ setSupportedCurrencies([
   "secret_network",
   "umee",
   "desmos",
+  "dydx",
   "onomy",
+  "sei_network",
   "quicksilver",
   "persistence",
   "bitcoin",
@@ -44,6 +49,8 @@ setSupportedCurrencies([
   "bitcoin_testnet",
   "ethereum_ropsten",
   "ethereum_goerli",
+  "ethereum_sepolia",
+  "ethereum_holesky",
   "crypto_org",
   "crypto_org_croeseid",
   "celo",
@@ -58,4 +65,5 @@ setSupportedCurrencies([
   "flare",
   "near",
   "coreum",
+  "vechain",
 ]);

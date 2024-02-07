@@ -43,8 +43,8 @@ export function GenuineCheck({ connectedDevice, setConnectedDevice }: Props) {
     setConnectedDevice(device);
   }, [device, setConnectedDevice]);
 
-  const [passed, setPassed] = useState(null);
-  const onResult = useCallback(result => {
+  const [passed, setPassed] = useState<unknown>(null);
+  const onResult = useCallback((result: unknown) => {
     setPassed(result);
   }, []);
 

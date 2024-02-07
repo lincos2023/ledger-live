@@ -26,7 +26,7 @@ import {
   initialState,
   loadCountervalues,
   inferTrackingPairForAccounts,
-} from "../countervalues/logic";
+} from "@ledgerhq/live-countervalues/logic";
 import { getPortfolio } from "../portfolio/v2";
 import { Account } from "@ledgerhq/types-live";
 import { getContext } from "@ledgerhq/coin-framework/bot/bot-test-context";
@@ -164,6 +164,7 @@ export async function bot({ disabled, filter }: Arg = {}): Promise<void> {
   const SEED = getEnv("SEED");
   invariant(SEED, "SEED required");
   const specsLogs: string[][] = [];
+
   const specs = getSpecs({ disabled, filter });
 
   const timeBefore = Date.now();

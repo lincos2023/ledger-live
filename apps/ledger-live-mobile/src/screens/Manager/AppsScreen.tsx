@@ -19,8 +19,8 @@ import { Trans } from "react-i18next";
 import { ListAppsResult } from "@ledgerhq/live-common/apps/types";
 import type { Device } from "@ledgerhq/live-common/hw/actions/types";
 import { AppType, SortOptions } from "@ledgerhq/live-common/apps/filtering";
-import useLatestFirmware from "@ledgerhq/live-common/hooks/useLatestFirmware";
-import { ManagerTab } from "../../const/manager";
+import { useLatestFirmware } from "@ledgerhq/live-common/device/hooks/useLatestFirmware";
+import { ManagerTab } from "~/const/manager";
 
 import AppFilter from "./AppsList/AppFilter";
 
@@ -32,19 +32,16 @@ import Searchbar from "./AppsList/Searchbar";
 
 import InstalledAppModal from "./Modals/InstalledAppModal";
 
-import NoResultsFound from "../../icons/NoResultsFound";
+import NoResultsFound from "~/icons/NoResultsFound";
 import AppIcon from "./AppsList/AppIcon";
 import AppUpdateAll from "./AppsList/AppUpdateAll";
-import Search from "../../components/Search";
-import FirmwareUpdateBanner from "../../components/FirmwareUpdateBanner";
-import { TAB_BAR_SAFE_HEIGHT } from "../../components/TabBar/shared";
-import type {
-  BaseComposite,
-  StackNavigatorProps,
-} from "../../components/RootNavigator/types/helpers";
-import { ManagerNavigatorStackParamList } from "../../components/RootNavigator/types/ManagerNavigator";
-import { ScreenName } from "../../const";
-import { lastSeenDeviceSelector } from "../../reducers/settings";
+import Search from "~/components/Search";
+import FirmwareUpdateBanner from "~/components/FirmwareUpdateBanner";
+import { TAB_BAR_SAFE_HEIGHT } from "~/components/TabBar/shared";
+import type { BaseComposite, StackNavigatorProps } from "~/components/RootNavigator/types/helpers";
+import { ManagerNavigatorStackParamList } from "~/components/RootNavigator/types/ManagerNavigator";
+import { ScreenName } from "~/const";
+import { lastSeenDeviceSelector } from "~/reducers/settings";
 import ProviderWarning from "./ProviderWarning";
 import { UpdateStep } from "../FirmwareUpdate";
 
@@ -55,8 +52,6 @@ type NavigationProps = BaseComposite<
 type Props = {
   state: State;
   dispatch: (_: Action) => void;
-  setAppInstallWithDependencies: (_: { app: App; dependencies: App[] }) => void;
-  setAppUninstallWithDependencies: (_: { dependents: App[]; app: App }) => void;
   setStorageWarning: (value: string | null) => void;
   deviceId: string;
   initialDeviceName?: string | null;
@@ -76,8 +71,6 @@ type Props = {
 const AppsScreen = ({
   state,
   dispatch,
-  setAppInstallWithDependencies,
-  setAppUninstallWithDependencies,
   setStorageWarning,
   updateModalOpened,
   deviceId,
@@ -232,20 +225,11 @@ const AppsScreen = ({
         app={item}
         state={state}
         dispatch={dispatch}
-        setAppInstallWithDependencies={setAppInstallWithDependencies}
-        setAppUninstallWithDependencies={setAppUninstallWithDependencies}
         setStorageWarning={setStorageWarning}
         optimisticState={optimisticState}
       />
     ),
-    [
-      state,
-      dispatch,
-      setAppInstallWithDependencies,
-      setAppUninstallWithDependencies,
-      setStorageWarning,
-      optimisticState,
-    ],
+    [state, dispatch, setStorageWarning, optimisticState],
   );
 
   const lastSeenDevice = useSelector(lastSeenDeviceSelector);
@@ -267,7 +251,6 @@ const AppsScreen = ({
               initialDeviceName={initialDeviceName}
               pendingInstalls={pendingInstalls}
               deviceInfo={deviceInfo}
-              setAppUninstallWithDependencies={setAppUninstallWithDependencies}
               dispatch={dispatch}
               device={device}
               appList={deviceApps}
@@ -325,7 +308,6 @@ const AppsScreen = ({
       initialDeviceName,
       pendingInstalls,
       deviceInfo,
-      setAppUninstallWithDependencies,
       dispatch,
       device,
       deviceApps,

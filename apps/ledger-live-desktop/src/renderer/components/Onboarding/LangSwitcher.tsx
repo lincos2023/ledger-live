@@ -40,7 +40,9 @@ const LangSwitcher = () => {
   }, [i18n, language]);
 
   const changeLanguage = useCallback(
-    ({ value }) => {
+    (l: typeof currentLanguage | null) => {
+      if (!l) return;
+      const { value } = l;
       dispatch(setLanguage(value));
     },
     [dispatch],

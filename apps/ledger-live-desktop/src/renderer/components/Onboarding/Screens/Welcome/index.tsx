@@ -1,5 +1,3 @@
-import { FeatureToggle, useFeature } from "@ledgerhq/live-common/featureFlags/index";
-import { useLoginPath } from "@ledgerhq/live-common/hooks/recoverFeatureFlag";
 import { Button, Flex, IconsLegacy, InvertThemeV3, Logos, Text } from "@ledgerhq/react-ui";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,8 +8,10 @@ import { saveSettings } from "~/renderer/actions/settings";
 import LangSwitcher from "~/renderer/components/Onboarding/LangSwitcher";
 import { openURL } from "~/renderer/linking";
 import { hasCompletedOnboardingSelector } from "~/renderer/reducers/settings";
-import { acceptTerms, useDynamicUrl } from "~/renderer/terms";
+import { acceptTerms } from "~/renderer/terms";
 import BuyNanoX from "./assets/buyNanoX.webm";
+import { useLocalizedUrl } from "~/renderer/hooks/useLocalizedUrls";
+import { urls } from "~/config/urls";
 
 const StyledLink = styled(Text)`
   text-decoration: underline;
@@ -93,24 +93,13 @@ export function Welcome() {
     }
   }, [hasCompletedOnboarding, history]);
 
-  const recoverFeature = useFeature("protectServicesDesktop");
-  const loginPath = useLoginPath(recoverFeature);
-
-  const recoverLogIn = useCallback(() => {
-    if (!loginPath) return;
-
-    acceptTerms();
-    dispatch(saveSettings({ hasCompletedOnboarding: true }));
-    history.push(loginPath);
-  }, [dispatch, history, loginPath]);
-
-  const urlBuyNew = useDynamicUrl("buyNew");
+  const urlBuyNew = useLocalizedUrl(urls.buyNew);
   const buyNanoX = () => openURL(urlBuyNew);
 
-  const urlTerms = useDynamicUrl("terms");
+  const urlTerms = useLocalizedUrl(urls.terms);
   const openTermsAndConditions = () => openURL(urlTerms);
 
-  const urlPrivacyPolicy = useDynamicUrl("privacyPolicy");
+  const urlPrivacyPolicy = useLocalizedUrl(urls.privacyPolicy);
   const openPrivacyPolicy = () => openURL(urlPrivacyPolicy);
 
   const countTitle = useRef(0);
@@ -125,7 +114,7 @@ export function Welcome() {
     history.push("/settings");
   }, [dispatch, history]);
 
-  const handleOpenFeatureFlagsDrawer = useCallback(nb => {
+  const handleOpenFeatureFlagsDrawer = useCallback((nb: string) => {
     if (nb === "1") countTitle.current++;
     else if (nb === "2") countSubtitle.current++;
     if (countTitle.current > 3 && countSubtitle.current > 5) {
@@ -179,19 +168,6 @@ export function Welcome() {
           >
             {t("onboarding.screens.welcome.nextButton")}
           </Button>
-          <FeatureToggle featureId="protectServicesDesktop">
-            <Button
-              iconPosition="right"
-              variant="main"
-              onClick={recoverLogIn}
-              outline={true}
-              flexDirection="column"
-              whiteSpace="normal"
-              mb="5"
-            >
-              {t("onboarding.screens.welcome.recoverSignIn")}
-            </Button>
-          </FeatureToggle>
           <Button
             iconPosition="right"
             variant="main"

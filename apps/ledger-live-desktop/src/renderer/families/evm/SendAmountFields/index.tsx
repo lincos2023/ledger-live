@@ -1,4 +1,4 @@
-import { Transaction as EvmTransaction } from "@ledgerhq/coin-evm/types/index";
+import { Transaction as EvmTransaction, Strategy } from "@ledgerhq/coin-evm/types/index";
 import { getAccountBridge } from "@ledgerhq/live-common/bridge/index";
 import { useGasOptions } from "@ledgerhq/live-common/families/evm/react";
 import { log } from "@ledgerhq/logs";
@@ -12,10 +12,36 @@ import GasPriceField from "./GasPriceField";
 import MaxFeeField from "./MaxFeeField";
 import PriorityFeeField from "./PriorityFeeField";
 import SelectFeeStrategy from "./SelectFeeStrategy";
+import TranslatedError from "~/renderer/components/TranslatedError";
+import Alert from "~/renderer/components/Alert";
+import { Flex } from "@ledgerhq/react-ui";
+import { closeAllModal } from "~/renderer/actions/modals";
+import { setTrackingSource } from "~/renderer/analytics/TrackPage";
+import { useDispatch } from "react-redux";
+import { useHistory } from "react-router";
 
 const Root: NonNullable<EvmFamily["sendAmountFields"]>["component"] = props => {
   const { account, updateTransaction, transaction } = props;
   const bridge: AccountBridge<EvmTransaction> = getAccountBridge(account);
+
+  const { errors } = props.status;
+  const { gasPrice: messageGas } = errors;
+
+  const dispatch = useDispatch();
+  const history = useHistory();
+
+  const onBuyClick = useCallback(() => {
+    dispatch(closeAllModal());
+    setTrackingSource("send flow");
+    history.push({
+      pathname: "/exchange",
+      state: {
+        currency: account.currency.id,
+        account: account.id,
+        mode: "buy", // buy or sell
+      },
+    });
+  }, [account.currency.id, account.id, dispatch, history]);
 
   const [gasOptions, error, loading] = useGasOptions({
     currency: account.currency,
@@ -36,7 +62,7 @@ const Root: NonNullable<EvmFamily["sendAmountFields"]>["component"] = props => {
   const shouldUseEip1559 = transaction.type === 2;
 
   const onFeeStrategyClick = useCallback(
-    ({ feesStrategy }) => {
+    ({ feesStrategy }: { feesStrategy: Strategy }) => {
       updateTransaction((tx: EvmTransaction) =>
         bridge.updateTransaction(tx, {
           feesStrategy,
@@ -53,7 +79,6 @@ const Root: NonNullable<EvmFamily["sendAmountFields"]>["component"] = props => {
           margin: "auto",
         }}
         size={32}
-        id="evm-fee-strategy-gas-options-spinner"
       />
     );
   }
@@ -86,6 +111,13 @@ const Root: NonNullable<EvmFamily["sendAmountFields"]>["component"] = props => {
         <>
           <SelectFeeStrategy gasOptions={gasOptions} onClick={onFeeStrategyClick} {...props} />
         </>
+      )}
+      {messageGas && (
+        <Flex onClick={onBuyClick}>
+          <Alert type="warning">
+            <TranslatedError error={messageGas} noLink />
+          </Alert>
+        </Flex>
       )}
     </>
   );

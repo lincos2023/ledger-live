@@ -9,21 +9,17 @@ import { snakeCase } from "lodash";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { IconType } from "@ledgerhq/native-ui/components/Icon/type";
 import useFeature from "@ledgerhq/live-common/featureFlags/useFeature";
-import { NavigatorName } from "../../const";
-import { hasOrderedNanoSelector, readOnlyModeEnabledSelector } from "../../reducers/settings";
+import { NavigatorName } from "~/const";
+import { hasOrderedNanoSelector, readOnlyModeEnabledSelector } from "~/reducers/settings";
 import { Props as ModalProps } from "../QueuedDrawer";
 import TransferButton from "../TransferButton";
 import BuyDeviceBanner, { IMAGE_PROPS_SMALL_NANO } from "../BuyDeviceBanner";
 import SetupDeviceBanner from "../SetupDeviceBanner";
-import { track, useAnalytics } from "../../analytics";
+import { track, useAnalytics } from "~/analytics";
 import { useToasts } from "@ledgerhq/live-common/notifications/ToastProvider/index";
-import useQuickActions from "../../hooks/useQuickActions";
-import { PTX_SERVICES_TOAST_ID } from "../../constants";
-
-import {
-  useAlreadySubscribedURI,
-  useLearnMoreURI,
-} from "@ledgerhq/live-common/hooks/recoverFeatureFlag";
+import useQuickActions from "~/hooks/useQuickActions";
+import { PTX_SERVICES_TOAST_ID } from "~/utils/constants";
+import { useQuickAccessURI } from "@ledgerhq/live-common/hooks/recoverFeatureFlag";
 
 type ButtonItem = {
   title: string;
@@ -42,7 +38,7 @@ type ButtonItem = {
 export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequestingToBeOpened">) {
   const navigation = useNavigation();
   const {
-    quickActionsList: { SEND, RECEIVE, BUY, SELL, SWAP, STAKE, WALLET_CONNECT, RECOVER },
+    quickActionsList: { SEND, RECEIVE, BUY, SELL, SWAP, STAKE, RECOVER },
   } = useQuickActions();
   const { t } = useTranslation();
   const { pushToast, dismissToast } = useToasts();
@@ -61,8 +57,7 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
 
   const recoverConfig = useFeature("protectServicesMobile");
 
-  const learnMoreURI = useLearnMoreURI(recoverConfig);
-  const alreadySubscribedURI = useAlreadySubscribedURI(recoverConfig);
+  const quickAccessURI = useQuickAccessURI(recoverConfig);
 
   const onNavigate = useCallback(
     (name: string, options?: object) => {
@@ -75,14 +70,11 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
     [navigation, onClose],
   );
   const onNavigateRecover = useCallback(() => {
-    if (alreadySubscribedURI) {
-      Linking.canOpenURL(alreadySubscribedURI).then(() => Linking.openURL(alreadySubscribedURI));
-    } else if (learnMoreURI) {
-      Linking.canOpenURL(learnMoreURI).then(() => Linking.openURL(learnMoreURI));
+    if (quickAccessURI) {
+      Linking.canOpenURL(quickAccessURI).then(() => Linking.openURL(quickAccessURI));
     }
-
     onClose?.();
-  }, [alreadySubscribedURI, learnMoreURI, onClose]);
+  }, [onClose, quickAccessURI]);
 
   const buttonsList: ButtonItem[] = [
     {
@@ -119,7 +111,6 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
       },
       title: t("transfer.buy.title"),
       description: t("transfer.buy.description"),
-      tag: t("common.popular"),
       Icon: BUY.icon,
       onPress: () => onNavigate(...BUY.route),
       onDisabledPress: () => {
@@ -135,7 +126,7 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
         }
       },
       disabled: BUY.disabled,
-      testID: "transfer-receive-button",
+      testID: "transfer-buy-button",
     },
     {
       eventProperties: {
@@ -189,6 +180,7 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
       title: t("transfer.swap.title"),
       description: t("transfer.swap.description"),
       Icon: SWAP.icon,
+      tag: t("common.popular"),
       onPress: () => onNavigate(...SWAP.route),
       onDisabledPress: () => {
         if (isPtxServiceCtaExchangeDrawerDisabled) {
@@ -206,23 +198,6 @@ export default function TransferDrawer({ onClose }: Omit<ModalProps, "isRequesti
       testID: "swap-transfer-button",
     },
 
-    ...(WALLET_CONNECT
-      ? [
-          {
-            eventProperties: {
-              button: "transfer_walletConnect",
-              page,
-              drawer: "trade",
-            },
-            title: t("transfer.walletConnect.title"),
-            description: t("transfer.walletConnect.description"),
-            Icon: WALLET_CONNECT.icon,
-            onPress: () => onNavigate(...WALLET_CONNECT.route),
-            disabled: WALLET_CONNECT.disabled,
-            testID: "transfer-walletconnect-button",
-          },
-        ]
-      : []),
     ...(RECOVER
       ? [
           {

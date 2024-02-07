@@ -208,7 +208,7 @@ const ValidatorRow = ({
   className,
 }: ValidatorRowProps) => {
   const inputRef = useRef<HTMLInputElement>();
-  const onTitleClick = useCallback(
+  const onTitleClick: React.MouseEventHandler<HTMLDivElement> = useCallback(
     e => {
       e.stopPropagation();
       onExternalLink(validator.address);
@@ -216,7 +216,8 @@ const ValidatorRow = ({
     [validator, onExternalLink],
   );
   const onChange = useCallback(
-    e => {
+    // onChange: (b: BigNumber, a: Unit) => void;
+    (e: BigNumber) => {
       onUpdateVote && onUpdateVote(validator.address, e.toString());
     },
     [validator, onUpdateVote],

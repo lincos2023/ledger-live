@@ -12,6 +12,7 @@ import {
   mergeMap,
   timeout,
   distinctUntilChanged,
+  retry,
 } from "rxjs/operators";
 import { log } from "@ledgerhq/logs";
 import { getCurrencyBridge, getAccountBridge } from "../bridge";
@@ -52,7 +53,6 @@ import type {
 } from "@ledgerhq/types-live";
 import type { Transaction, TransactionStatus } from "../generated/types";
 import { botTest } from "@ledgerhq/coin-framework/bot/bot-test-context";
-import { retryWithDelay } from "../rxjs/operators/retryWithDelay";
 
 let appCandidates;
 const localCache = {};
@@ -93,7 +93,7 @@ export async function runWithAppSpec<T extends Transaction>(
   }
 
   const mutationReports: MutationReport<T>[] = [];
-  const { appQuery, currency, dependency } = spec;
+  const { appQuery, currency, dependency, onSpeculosDeviceCreated } = spec;
   const appCandidate = findAppCandidate(appCandidates, appQuery);
   if (!appCandidate) {
     console.warn("no app found for " + spec.name);
@@ -113,8 +113,10 @@ export async function runWithAppSpec<T extends Transaction>(
     seed,
     dependency,
     coinapps,
+    onSpeculosDeviceCreated,
   };
   let device;
+
   const hintWarnings: string[] = [];
   const appReport: SpecReport<T> = {
     spec,
@@ -137,9 +139,6 @@ export async function runWithAppSpec<T extends Transaction>(
   try {
     device = await createSpeculosDevice(deviceParams);
     appReport.appPath = device.appPath;
-    if (spec.onSpeculosDeviceCreated) {
-      await spec.onSpeculosDeviceCreated(device);
-    }
     const bridge = getCurrencyBridge(currency);
     const syncConfig = {
       paginationConfig: {},
@@ -159,10 +158,10 @@ export async function runWithAppSpec<T extends Transaction>(
           syncConfig,
         })
         .pipe(
-          retryWithDelay(
-            delayBetweenScanAccountRetries,
-            spec.scanAccountsRetries || defaultScanAccountsRetries,
-          ),
+          retry({
+            count: spec.scanAccountsRetries || defaultScanAccountsRetries,
+            delay: delayBetweenScanAccountRetries,
+          }),
           filter(e => e.type === "discovered"),
           map(e => deepFreezeAccount(e.account)),
           reduce<Account, Account[]>((all, a) => all.concat(a), []),
@@ -178,9 +177,9 @@ export async function runWithAppSpec<T extends Transaction>(
     // check if there are more accounts than mutation declared as a hint for the dev
     if (accounts.length <= spec.mutations.length) {
       hintWarnings.push(
-        "There are not enough accounts to cover all mutations. Please increase the account target to at least " +
-          (spec.mutations.length + 1) +
-          " accounts",
+        `There are not enough accounts (${accounts.length}) to cover all mutations (${
+          spec.mutations.length
+        }).\nPlease increase the account target to at least ${spec.mutations.length + 1} accounts`,
       );
     }
 

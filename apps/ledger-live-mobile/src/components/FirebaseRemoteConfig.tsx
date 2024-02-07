@@ -1,35 +1,25 @@
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import remoteConfig from "@react-native-firebase/remote-config";
-import { DEFAULT_FEATURES } from "@ledgerhq/live-common/featureFlags/index";
-import { reduce, snakeCase } from "lodash";
-import { FeatureMap } from "@ledgerhq/types-live";
-
-export const formatToFirebaseFeatureId = (id: string) => {
-  return `feature_${snakeCase(id)}`;
-};
-
-// Firebase SDK treat JSON values as strings
-const formatDefaultFeatures = (config: FeatureMap) =>
-  reduce(
-    config,
-    (acc, feature, featureId) => ({
-      ...acc,
-      [formatToFirebaseFeatureId(featureId)]: JSON.stringify(feature),
-    }),
-    {},
-  );
-
-type Props = {
-  children?: ReactNode;
-};
+import { DEFAULT_FEATURES, formatDefaultFeatures } from "@ledgerhq/live-common/featureFlags/index";
+import type { FirebaseFeatureFlagsProviderProps as Props } from "@ledgerhq/live-common/featureFlags/index";
+import { LiveConfig } from "@ledgerhq/live-config/LiveConfig";
+import { FirebaseRemoteConfigProvider as FirebaseProvider } from "@ledgerhq/live-config/providers/index";
 
 export const FirebaseRemoteConfigProvider = ({ children }: Props): JSX.Element | null => {
   const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     let unmounted = false;
-    const loadRemoteConfig = async () => {
+    LiveConfig.setProvider(
+      new FirebaseProvider({
+        getValue: (key: string) => {
+          return remoteConfig().getValue(key);
+        },
+      }),
+    );
+    const fetchConfig = async () => {
       try {
+        remoteConfig().setConfigSettings({ minimumFetchIntervalMillis: 0 });
         await remoteConfig().setDefaults({
           ...formatDefaultFeatures(DEFAULT_FEATURES),
         });
@@ -38,14 +28,17 @@ export const FirebaseRemoteConfigProvider = ({ children }: Props): JSX.Element |
         if (!unmounted) {
           console.error(`Failed to fetch Firebase remote config with error: ${error}`);
         }
-      }
-      if (!unmounted) {
-        setLoaded(true);
+      } finally {
+        if (!unmounted) {
+          setLoaded(true);
+        }
       }
     };
-    loadRemoteConfig();
-
+    fetchConfig();
+    // 12 hours fetch interval. TODO: make this configurable
+    const intervalId = setInterval(fetchConfig, 12 * 60 * 60 * 1000);
     return () => {
+      clearInterval(intervalId);
       unmounted = true;
     };
   }, []);

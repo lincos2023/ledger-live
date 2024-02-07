@@ -1,6 +1,7 @@
 import { Transaction as EvmTransaction } from "@ledgerhq/coin-evm/types/index";
 import { getAccountBridge } from "@ledgerhq/live-common/bridge/index";
-import { getNftCapabilities, useNftMetadata } from "@ledgerhq/live-common/nft/index";
+import { getNftCapabilities } from "@ledgerhq/coin-framework/nft/support";
+import { useNftMetadata } from "@ledgerhq/live-nft-react";
 import { Account, ProtoNFT } from "@ledgerhq/types-live";
 import { useNavigation, useTheme } from "@react-navigation/native";
 import BigNumber from "bignumber.js";
@@ -8,13 +9,13 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import LText from "../../components/LText";
-import LoadingFooter from "../../components/LoadingFooter";
-import NftMedia from "../../components/Nft/NftMedia";
-import { SendFundsNavigatorStackParamList } from "../../components/RootNavigator/types/SendFundsNavigator";
-import { StackNavigatorNavigation } from "../../components/RootNavigator/types/helpers";
-import Skeleton from "../../components/Skeleton";
-import { ScreenName } from "../../const";
+import LText from "~/components/LText";
+import LoadingFooter from "~/components/LoadingFooter";
+import NftMedia from "~/components/Nft/NftMedia";
+import { SendFundsNavigatorStackParamList } from "~/components/RootNavigator/types/SendFundsNavigator";
+import { StackNavigatorNavigation } from "~/components/RootNavigator/types/helpers";
+import Skeleton from "~/components/Skeleton";
+import { ScreenName } from "~/const";
 
 const MAX_NFTS_FIRST_RENDER = 8;
 const NFTS_TO_ADD_ON_LIST_END_REACHED = 8;
@@ -32,7 +33,7 @@ const NftRow = memo(({ account, nft }: { account: Account; nft: ProtoNFT }) => {
     // Only evm family handles nft as of today. If later we have other family,
     // we will need to rework the NFT send flow by implementing family specific
     // logic under their "src/families" respective folder.
-    const bridge = getAccountBridge<EvmTransaction>(account);
+    const bridge = getAccountBridge(account);
 
     const defaultTransaction = bridge.createTransaction(account);
 

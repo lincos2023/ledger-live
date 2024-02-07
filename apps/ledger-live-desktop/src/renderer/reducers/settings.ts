@@ -75,7 +75,6 @@ export type SettingsState = {
   filterTokenOperationsZeroAmount: boolean;
   sidebarCollapsed: boolean;
   discreetMode: boolean;
-  carouselVisibility: number;
   starredAccountIds?: string[];
   blacklistedTokenIds: string[];
   hiddenNftCollections: string[];
@@ -105,6 +104,7 @@ export type SettingsState = {
   };
   featureFlagsButtonVisible: boolean;
   vaultSigner: VaultSigner;
+  supportedCounterValues: SupportedCountervaluesData[];
 };
 
 export const getInitialLanguageAndLocale = (): { language: Language; locale: Locale } => {
@@ -157,7 +157,6 @@ const INITIAL_STATE: SettingsState = {
   discreetMode: false,
   preferredDeviceModel: DeviceModelId.nanoS,
   hasInstalledApps: true,
-  carouselVisibility: 0,
   lastSeenDevice: null,
   devicesModelList: [],
   lastSeenCustomImage: {
@@ -189,6 +188,7 @@ const INITIAL_STATE: SettingsState = {
 
   // Vault
   vaultSigner: { enabled: false, host: "", token: "", workspace: "" },
+  supportedCounterValues: [],
 };
 
 /* Handlers */
@@ -237,6 +237,7 @@ type HandlersPayloads = {
     featureFlagsButtonVisible: boolean;
   };
   SET_VAULT_SIGNER: VaultSigner;
+  SET_SUPPORTED_COUNTER_VALUES: SupportedCountervaluesData[];
 };
 type SettingsHandlers<PreciseKey = true> = Handlers<SettingsState, HandlersPayloads, PreciseKey>;
 
@@ -265,12 +266,6 @@ const handlers: SettingsHandlers = {
     };
   },
   FETCH_SETTINGS: (state, { payload: settings }) => {
-    if (
-      settings.counterValue &&
-      !supportedCountervalues.find(({ currency }) => currency.ticker === settings.counterValue)
-    ) {
-      settings.counterValue = INITIAL_STATE.counterValue;
-    }
     return {
       ...state,
       ...settings,
@@ -292,7 +287,7 @@ const handlers: SettingsHandlers = {
     const ids = state.blacklistedTokenIds;
     return {
       ...state,
-      blacklistedTokenIds: [...ids, tokenId],
+      blacklistedTokenIds: [...new Set([...ids, tokenId])],
     };
   },
   UNHIDE_NFT_COLLECTION: (state, { payload: collectionId }) => {
@@ -396,6 +391,20 @@ const handlers: SettingsHandlers = {
     ...state,
     vaultSigner: payload,
   }),
+  SET_SUPPORTED_COUNTER_VALUES: (state: SettingsState, { payload }) => {
+    let activeCounterValue = state.counterValue;
+    if (
+      activeCounterValue &&
+      !payload.find(({ currency }) => currency.ticker === activeCounterValue)
+    ) {
+      activeCounterValue = INITIAL_STATE.counterValue;
+    }
+    return {
+      ...state,
+      supportedCounterValues: payload,
+      counterValue: activeCounterValue,
+    };
+  },
 };
 export default handleActions<SettingsState, HandlersPayloads[keyof HandlersPayloads]>(
   handlers as unknown as SettingsHandlers<false>,
@@ -460,22 +469,23 @@ const defaultsForCurrency: (a: Currency) => CurrencySettings = crypto => {
   };
 };
 
-export type SupportedCoutervaluesData = {
+export type SupportedCountervaluesData = {
   value: string;
   label: string;
   currency: Currency;
 };
-export const supportedCountervalues: SupportedCoutervaluesData[] = [
-  ...listSupportedFiats(),
-  ...possibleIntermediaries,
-]
-  .map(currency => ({
-    value: currency.ticker,
-    label: `${currency.name} - ${currency.ticker}`,
-    currency,
-  }))
-  .sort((a, b) => (a.currency.name < b.currency.name ? -1 : 1));
 
+export const getsupportedCountervalues = async (): Promise<SupportedCountervaluesData[]> => {
+  const supportedFiats = await listSupportedFiats();
+  const data = [...supportedFiats, ...possibleIntermediaries]
+    .map(currency => ({
+      value: currency.ticker,
+      label: `${currency.name} - ${currency.ticker}`,
+      currency,
+    }))
+    .sort((a, b) => (a.currency.name < b.currency.name ? -1 : 1));
+  return data;
+};
 // TODO refactor selectors to *Selector naming convention
 
 export const storeSelector = (state: State): SettingsState => state.settings;
@@ -614,7 +624,6 @@ export const autoLockTimeoutSelector = (state: State) => state.settings.autoLock
 export const shareAnalyticsSelector = (state: State) => state.settings.shareAnalytics;
 export const selectedTimeRangeSelector = (state: State) => state.settings.selectedTimeRange;
 export const hasInstalledAppsSelector = (state: State) => state.settings.hasInstalledApps;
-export const carouselVisibilitySelector = (state: State) => state.settings.carouselVisibility;
 export const USBTroubleshootingIndexSelector = (state: State) =>
   state.settings.USBTroubleshootingIndex;
 export const allowDebugAppsSelector = (state: State) => state.settings.allowDebugApps;
@@ -691,3 +700,5 @@ export const overriddenFeatureFlagsSelector = (state: State) =>
 export const featureFlagsButtonVisibleSelector = (state: State) =>
   state.settings.featureFlagsButtonVisible;
 export const vaultSignerSelector = (state: State) => state.settings.vaultSigner;
+export const supportedCounterValuesSelector = (state: State) =>
+  state.settings.supportedCounterValues;

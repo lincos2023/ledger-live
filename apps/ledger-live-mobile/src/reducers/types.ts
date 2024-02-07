@@ -21,6 +21,8 @@ import {
   AssetContentCard,
   LearnContentCard,
   NotificationContentCard,
+  CategoryContentCard,
+  BrazeContentCard,
 } from "../dynamicContent/types";
 import { ProtectStateNumberEnum } from "../components/ServicesWidget/types";
 import { ImageType } from "../components/CustomImage/types";
@@ -70,7 +72,7 @@ export type AppState = {
   backgroundEvents: Array<FwUpdateBackgroundEvent>;
   isMainNavigatorVisible: boolean;
   /** For deep links that inadvertently trigger privacy lock. Reset to false on close. */
-  isDeepLinking: boolean;
+  isPasswordLockBlocked: boolean;
 };
 
 // === BLE STATE ===
@@ -118,6 +120,10 @@ export type DynamicContentState = {
   learnCards: LearnContentCard[];
   /** Dynamic content cards displayed in Notification Center */
   notificationCards: NotificationContentCard[];
+  /** Dynamic content cards handling flexible categories throughout the app */
+  categoriesCards: CategoryContentCard[];
+  /** Dynamic content cards for Ledger Live Mobile */
+  mobileCards: BrazeContentCard[];
 };
 
 // === RATINGS STATE ===
@@ -157,6 +163,8 @@ export type CurrencySettings = {
 };
 
 export type Privacy = {
+  // Is a password setted by the user ?
+  hasPassword: boolean;
   // when we set the privacy, we also retrieve the biometricsType info
   biometricsType?: string | null;
   // this tells if the biometrics was enabled by user yet
@@ -171,11 +179,19 @@ export type Pair = {
 
 export type Theme = "system" | "light" | "dark";
 
+export type supportedCountervaluesData = {
+  value: string;
+  ticker: string;
+  label: string;
+  currency: Currency;
+};
+
 export type SettingsState = {
   counterValue: string;
   counterValueExchange: string | null | undefined;
   reportErrorsEnabled: boolean;
   analyticsEnabled: boolean;
+  personalizedRecommendationsEnabled: boolean;
   privacy: Privacy | null | undefined;
   currenciesSettings: Record<string, CurrencySettings>;
   pairExchanges: Record<string, string | null | undefined>;
@@ -225,6 +241,8 @@ export type SettingsState = {
     hash: string;
   };
   notifications: NotificationsSettings;
+  /** True if user never clicked on the AllowNotifications button in the notifications settings */
+  neverClickedOnAllowNotificationsButton: boolean;
   walletTabNavigatorLastVisitedTab: keyof WalletTabNavigatorStackParamList;
   overriddenFeatureFlags: { [key in FeatureId]?: Feature | undefined };
   featureFlagsBannerVisible: boolean;
@@ -237,6 +255,7 @@ export type SettingsState = {
     hasClosedWithdrawBanner: boolean;
   };
   userNps: number | null;
+  supportedCounterValues: supportedCountervaluesData[];
 };
 
 export type NotificationsSettings = {

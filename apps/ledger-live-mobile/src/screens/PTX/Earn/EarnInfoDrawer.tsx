@@ -2,12 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button, Flex, Text } from "@ledgerhq/native-ui";
 import { useTranslation } from "react-i18next";
 
-import { Track } from "../../../analytics";
-import QueuedDrawer from "../../../components/QueuedDrawer";
+import { Track } from "~/analytics";
+import QueuedDrawer from "~/components/QueuedDrawer";
 import { useDispatch, useSelector } from "react-redux";
-import { earnInfoModalSelector } from "../../../reducers/earn";
-import { setEarnInfoModal } from "../../../actions/earn";
-import { setIsDeepLinking } from "../../../actions/appstate";
+import { earnInfoModalSelector } from "~/reducers/earn";
+import { setEarnInfoModal } from "~/actions/earn";
 
 export function EarnInfoDrawer() {
   const { t } = useTranslation();
@@ -19,7 +18,6 @@ export function EarnInfoDrawer() {
   const closeModal = useCallback(async () => {
     await dispatch(setEarnInfoModal({}));
     await setModalOpened(false);
-    dispatch(setIsDeepLinking(false));
   }, [dispatch]);
   const { message, messageTitle } = useSelector(earnInfoModalSelector);
 
